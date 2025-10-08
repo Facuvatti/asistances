@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styles.css">
+    <a href="index.html">Asistencias</a>
+    <title>Cargar curso</title>
+</head>
+<body>
+    <h1>Curso</h1>
+    <form onsubmit="makeRoom(event)">
+        <input type="text" name="year" placeholder="AÑO"></input>
+        <input type="text" name="division" placeholder="DIVISION"></input>
+        <input type="text" name="specialty" placeholder="ESPECIALIDAD"></input>
+        <textarea rows="10" cols="50" id="students" name="students" placeholder="APELLIDO NOMBRE DNI
+APELLIDO NOMBRE DNI"></textarea>
+        <button type="submit">Enviar</button>
+    </form>
+    <script src="room.js"></script>
+</body>
+</html>
