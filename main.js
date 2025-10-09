@@ -6,11 +6,15 @@ function insertToSelection(options,select=undefined) {
     for (let option of options) {
         let op = document.createElement("option");
         op.textContent = option;
+        op.value = option;
         select.append(op);
+    }
+    if (select.options.length === 1) {
+        select.selectedIndex = 0;
     }
     return select;
 }
-async function httpRequest(event,url,endpoint,method,body) { // Es un handler para formularios
+async function httpRequest(endpoint,method,body,url="http://localhost:3000/",event=null) { // Es un handler para formularios
     let options = {
         method: method,
         headers: {'Content-Type': 'application/json'}
@@ -47,30 +51,30 @@ function makeRow(row,table) {
     let remove = document.createElement("button");
     remove.textContent = "x";
     remove.onclick = () => {
-        httpRequest(null,"http://localhost:3000/",table+"/"+row.id,"DELETE");
+        httpRequest(table+"/"+row.id,"DELETE");
         tr.remove();
     }
     let present = document.createElement("button");
     present.textContent = "P";
     present.onclick = () => {
-        httpRequest(null,"http://localhost:3000/",table+"/"+row.id,"PATCH",{presence: "P",time: null});
+        httpRequest(table+"/"+row.id,"PATCH",{presence: "P",time: null});
     }
     let late = document.createElement("button");
     late.textContent = "T";
     late.onclick = () => {
         const currentTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        httpRequest(null,"http://localhost:3000/",table+"/"+row.id,"PATCH",{presence: "T",time: currentTime});
+        httpRequest(table+"/"+row.id,"PATCH",{presence: "T",time: currentTime});
     }
     let absent = document.createElement("button");
     absent.textContent = "A";
     absent.onclick = () => {
-        httpRequest(null,"http://localhost:3000/",table+"/"+row.id,"PATCH",{presence: "A", time: null});
+        httpRequest(table+"/"+row.id,"PATCH",{presence: "A", time: null});
     }
     retired = document.createElement("button");
     retired.textContent = "RA";
     retired.onclick = () => {
         const currentTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        httpRequest(null,"http://localhost:3000/",table+"/"+row.id,"PATCH",{date: dateNow(),presence: "RA",time: currentTime});
+        httpRequest(table+"/"+row.id,"PATCH",{date: dateNow(),presence: "RA",time: currentTime});
     }
     actions.append(present,late,absent,retired,remove);
     tr.append(actions);
@@ -81,56 +85,36 @@ function selected(select){
     let selection = select.options[select.selectedIndex]
     return selection
 }
-
-let room = 0;
-let year = document.querySelector("#year")
-let years = httpRequest(null,"http://localhost:3000/","years","GET").then(years => {
-    year = insertToSelection(years,year);
-    year.onchange = () => {
-        if(room == 0) {
-           room++; 
-        }
+async function  dbOptions(select,endpoint,dependencies=null) {
+    if (dependencies == null) {
+        options = await httpRequest(endpoint,"GET");
+        select = insertToSelection(options,select);
+    } else {
+        let dependenciesSelect = dependencies.map(async dependency => await dbOptions(dependency[0],dependency[1]));
+        let dependenciesSelection = dependenciesSelect.map(async dependency => await selected(dependency).value);
+        for(let selection of dependenciesSelection) {
+            endpoint += "/" + selection;
+        };
+        dependenciesSelect.map(dependency => dependency.onchange = async () => {
+            options = await httpRequest(endpoint,"GET");
+            select = insertToSelection(options,select);
+            
+        })     
     }
-    if(year.childElementCount == 1) room++;
+    if (select.options.length === 1) select.dispatchEvent(new Event('change'));
+    return select;
+}
+async function main() {
+    let divisions = await dbOptions(document.querySelector("#division"),"divisions",[["year","years"],["specialty","specialties"]]);
+}
+
+let tbody = document.querySelector("#students > tbody");
+httpRequest("students/"+selected(year).value+"/"+selected(division).value+"/"+selected(specialty).value,"GET")
+.then(students => {
+    console.log(students);
+    for(let student of students) {
+        makeRow(student,tbody);
+    }  
 });
-let specialty = document.querySelector("#specialty")
-httpRequest(null,"http://localhost:3000/","specialties","GET")
-.then(specialties => {
-    specialty = insertToSelection(specialties,specialty)
-    specialty.onchange = () => {
-        if(room == 1){
-            room++;
-        }
-    }
-    if (specialty.childElementCount == 1) room++;
-    return specialty;
-
-})
-.then(specialty => {
-    if(room == 1){
-        let division = document.querySelector("#division")
-        httpRequest(null,"http://localhost:3000/","divisions/"+selected(year).value+"/"+selected(specialty).value,"GET")
-        .then(divisions => {
-            division = insertToSelection(divisions,division)
-            division.onchange = () => {
-                room++;
-            }
-            if (division.childElementCount == 1) room++;
-            return division;
-        })
-        .then(division => {
-            if(room == 2) {
-                let tbody = document.querySelector("#students > tbody");
-                httpRequest(null,"http://localhost:3000/students/",selected(year).value+"/"+selected(division).value+"/"+selected(specialty).value,"GET")
-                .then(students => {
-                    console.log(students);
-                    for(let student of students) {
-                        makeRow(student,tbody);
-                    }  
-                });
-            }
-        })
-    }
-})
 
 

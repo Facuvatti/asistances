@@ -22,7 +22,7 @@ const connection = mysql.createConnection({
 
 
 sqlFileContent = sqlFileContent.replace(/\r\n/gm, '');
-connection.query(sqlFileContent, (err, results) => {});
+//connection.query(sqlFileContent, (err, results) => {});
 // --- ENDPOINTS ---
 app.post("/students", (req, res) => {
     let { year, division, specialty, students } = req.body;
