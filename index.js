@@ -15,19 +15,17 @@ let sqlFileContent = fs.readFileSync('schema.sql', 'utf8');
 const connection = mysql.createConnection({
     host: 'localhost',
     user: 'root',
-    password: 'root',
-    database: 'preception',
+    password: '',
     multipleStatements: true
 });
 
 
 sqlFileContent = sqlFileContent.replace(/\r\n/gm, '');
-//connection.query(sqlFileContent, (err, results) => {});
+connection.query(sqlFileContent, (err, results) => {console.log("\n\n\n"+err)});
 // --- ENDPOINTS ---
 app.post("/students", (req, res) => {
     let { year, division, specialty, students } = req.body;
     students = students.split("\n");
-    let classId;
     let inserts = [];
     let errors = [];
     connection.query("INSERT INTO classes (year, division, specialty) VALUES (?, ?, ?)", [year, division, specialty], (err, result) => {
@@ -35,28 +33,28 @@ app.post("/students", (req, res) => {
             console.error("Error al crear clase:", err);
             return res.status(500).json({ error: "Error al crear clase" });
         }
-        classId = result.insertId;
-    })
-    students.forEach((student, i) => {
-        const [lastname, name] = student.split(" ");
-        const query = "INSERT INTO students (lastname, name,class) VALUES (?, ?, ?)";
-        connection.query(query, [lastname, name, classId], (err, result) => {
-            if (err) {
-                console.error("Error al crear estudiante:", err);
-                errors.push({ student, error: err });
-            } else {
-                inserts.push(result);
-            }
-
-            // cuando termina el último, respondemos
-            if (i === students.length - 1) {
-                if (errors.length > 0) {
-                    res.status(207).json({ success: inserts.length, failed: errors.length, errors });
+        const classId = result.insertId;
+        students.forEach((student, i) => {
+            const [lastname, name] = student.split(" ");
+            const query = "INSERT INTO students (lastname, name,class) VALUES (?, ?, ?)";
+            connection.query(query, [lastname, name, classId], (err, result) => {
+                if (err) {
+                    console.error("Error al crear estudiante:", err);
+                    errors.push({ student, error: err });
                 } else {
-                    res.status(201).json({ message: "Todos los estudiantes insertados correctamente", inserts });
+                    inserts.push(result);
                 }
-            }
-        });
+
+                // cuando termina el último, respondemos
+                if (i === students.length - 1) {
+                    if (errors.length > 0) {
+                        res.status(207).json({ success: inserts.length, failed: errors.length, errors });
+                    } else {
+                        res.status(201).json({ message: "Todos los estudiantes insertados correctamente", inserts });
+                    }
+                }
+            });
+        })
     });
 });
 app.get("/students/:year/:division/:specialty", (req, res) => {

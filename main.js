@@ -109,6 +109,7 @@ async function init(){
     const year = await dbOptions(document.querySelector("#year"),"years");
     const division = await dbOptions(document.querySelector("#division"),"divisions");
     const specialty = await dbOptions(document.querySelector("#specialty"),"specialties");
+    students(year,division,specialty)
     year.addEventListener("change", () => students(year,division,specialty))
     division.addEventListener("change", () => students(year,division,specialty))
     specialty.addEventListener("change", () => students(year,division,specialty))

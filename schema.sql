@@ -1,4 +1,4 @@
-CREATE DATABASE preception;
+CREATE DATABASE IF NOT EXISTS preception;
 USE preception;
 CREATE TABLE IF NOT EXISTS classes (
     id INT NOT NULL AUTO_INCREMENT,
@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS classes (
     specialty VARCHAR(255) NOT NULL,
     room int NOT NULL,
     PRIMARY KEY (id)
-)
+);
 CREATE TABLE IF NOT EXISTS students (
     id INT NOT NULL AUTO_INCREMENT,
     lastname VARCHAR(255) NOT NULL,
