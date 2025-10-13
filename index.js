@@ -27,14 +27,20 @@ sqlFileContent = sqlFileContent.replace(/\r\n/gm, '');
 app.post("/students", (req, res) => {
     let { year, division, specialty, students } = req.body;
     students = students.split("\n");
-
+    let classId;
     let inserts = [];
     let errors = [];
-
+    connection.query("INSERT INTO classes (year, division, specialty) VALUES (?, ?, ?)", [year, division, specialty], (err, result) => {
+        if (err) {
+            console.error("Error al crear clase:", err);
+            return res.status(500).json({ error: "Error al crear clase" });
+        }
+        classId = result.insertId;
+    })
     students.forEach((student, i) => {
         const [lastname, name] = student.split(" ");
-        const query = "INSERT INTO students (lastname, name, year, division, specialty) VALUES (?, ?, ?, ?, ?)";
-        connection.query(query, [lastname, name, year, division, specialty], (err, result) => {
+        const query = "INSERT INTO students (lastname, name,class) VALUES (?, ?, ?)";
+        connection.query(query, [lastname, name, classId], (err, result) => {
             if (err) {
                 console.error("Error al crear estudiante:", err);
                 errors.push({ student, error: err });
@@ -55,7 +61,7 @@ app.post("/students", (req, res) => {
 });
 app.get("/students/:year/:division/:specialty", (req, res) => {
     const { year, division, specialty } = req.params;
-    const query = "SELECT lastname,name FROM students WHERE year = ? AND division = ? AND specialty = ? ORDER BY lastname, name";
+    const query = "SELECT s.id,s.lastname,s.name FROM students AS s JOIN classes AS c ON s.class = c.id WHERE c.year = ? AND c.division = ? AND c.specialty = ? ORDER BY lastname, name";
     connection.query(query,[year, division, specialty], (err, results) => {
         if (err) {
             console.error("Error al obtener estudiantes:", err);
@@ -65,7 +71,7 @@ app.get("/students/:year/:division/:specialty", (req, res) => {
     });
 });
 app.get("/years", (req, res) => {
-    const query = "SELECT DISTINCT year FROM students";
+    const query = "SELECT DISTINCT year FROM classes";
     connection.query(query, (err, results) => {
         if (err) {
             console.error("Error al obtener años:", err);
@@ -74,10 +80,9 @@ app.get("/years", (req, res) => {
         res.json(results);
     });
 });
-app.get("/divisions/:year/:specialty", (req, res) => {
-    const { year, specialty } = req.params;
-    const query = "SELECT DISTINCT division FROM students WHERE year = ? AND specialty = ?";
-    connection.query(query, [year, specialty], (err, results) => {
+app.get("/divisions", (req, res) => {
+    const query = "SELECT DISTINCT division FROM classes";
+    connection.query(query, (err, results) => {
         if (err) {
             console.error("Error al obtener divisiones:", err);
             return res.status(500).json({ error: "Error al obtener divisiones" });
@@ -86,13 +91,35 @@ app.get("/divisions/:year/:specialty", (req, res) => {
     });
 })
 app.get("/specialties/", (req, res) => {
-    const query = "SELECT DISTINCT specialty FROM students";
+    const query = "SELECT DISTINCT specialty FROM classes";
     connection.query(query, (err, results) => {
         if (err) {
             console.error("Error al obtener especialidades:", err);
             return res.status(500).json({ error: "Error al obtener especialidades" });
         }
         res.json(results);
+    });
+})
+app.delete("/student/:id", (req, res) => {
+    const id = req.params.id;
+    const query = "DELETE FROM students WHERE id = ?";
+    connection.query(query, [id], (err, result) => {
+        if (err) {
+            console.error("Error al eliminar estudiante:", err);
+            return res.status(500).json({ error: "Error al eliminar estudiante" });
+        }
+        res.status(200).json(result);
+    });
+})
+app.delete("/class/:id", (req, res) => {
+    const id = req.params.id;
+    const query = "DELETE FROM classes WHERE id = ?";
+    connection.query(query, [id], (err, result) => {
+        if (err) {
+            console.error("Error al eliminar clase:", err);
+            return res.status(500).json({ error: "Error al eliminar clase" });
+        }
+        res.status(200).json(result);
     });
 })
 app.listen(3000, () => {

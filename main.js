@@ -51,30 +51,28 @@ function makeRow(row,table) {
     let remove = document.createElement("button");
     remove.textContent = "x";
     remove.onclick = () => {
-        httpRequest(table+"/"+row.id,"DELETE");
+        httpRequest(table.id+"/"+row.id,"DELETE");
         tr.remove();
     }
     let present = document.createElement("button");
     present.textContent = "P";
     present.onclick = () => {
-        httpRequest(table+"/"+row.id,"PATCH",{presence: "P",time: null});
+        httpRequest(table.id+"/"+row.id,"PATCH",{presence: "P"});
     }
     let late = document.createElement("button");
     late.textContent = "T";
     late.onclick = () => {
-        const currentTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        httpRequest(table+"/"+row.id,"PATCH",{presence: "T",time: currentTime});
+        httpRequest(table.id+"/"+row.id,"PATCH",{presence: "T"});
     }
     let absent = document.createElement("button");
     absent.textContent = "A";
     absent.onclick = () => {
-        httpRequest(table+"/"+row.id,"PATCH",{presence: "A", time: null});
+        httpRequest(table.id+"/"+row.id,"PATCH",{presence: "A"});
     }
     retired = document.createElement("button");
     retired.textContent = "RA";
-    retired.onclick = () => {
-        const currentTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        httpRequest(table+"/"+row.id,"PATCH",{date: dateNow(),presence: "RA",time: currentTime});
+    retired.onclick = () => {   
+        httpRequest(table.id+"/"+row.id,"PATCH",{date: dateNow(),presence: "RA",time: currentTime});
     }
     actions.append(present,late,absent,retired,remove);
     tr.append(actions);
@@ -82,39 +80,44 @@ function makeRow(row,table) {
     table.append(tr);
 }
 function selected(select){
-    let selection = select.options[select.selectedIndex]
-    return selection
+    if(select.options.length === 1) return select.options[0];
+    else {
+    let selection = select.options[select.selectedIndex];
+    return selection;
 }
-async function  dbOptions(select,endpoint,dependencies=null) {
-    if (dependencies == null) {
-        options = await httpRequest(endpoint,"GET");
-        select = insertToSelection(options,select);
-    } else {
-        let dependenciesSelect = dependencies.map(async dependency => await dbOptions(dependency[0],dependency[1]));
-        let dependenciesSelection = dependenciesSelect.map(async dependency => await selected(dependency).value);
-        for(let selection of dependenciesSelection) {
-            endpoint += "/" + selection;
-        };
-        dependenciesSelect.map(dependency => dependency.onchange = async () => {
-            options = await httpRequest(endpoint,"GET");
-            select = insertToSelection(options,select);
-            
-        })     
-    }
+}
+async function  dbOptions(select,endpoint) {
+    options = await httpRequest(endpoint,"GET");
+    select = insertToSelection(options,select);
     if (select.options.length === 1) select.dispatchEvent(new Event('change'));
     return select;
 }
-async function main() {
-    let divisions = await dbOptions(document.querySelector("#division"),"divisions",[["year","years"],["specialty","specialties"]]);
+async function students(year,division,specialty) {
+    let tbody = document.querySelector("#students > tbody");
+    tbody.innerHTML = "";
+    httpRequest("students/"+selected(year).value+"/"+selected(division).value+"/"+selected(specialty).value,"GET")
+    .then(students => {
+        console.log(students);
+        for(let student of students) {
+            makeRow(student,tbody);
+        }  
+    });
 }
+// selects con opciones
+async function init(){
 
-let tbody = document.querySelector("#students > tbody");
-httpRequest("students/"+selected(year).value+"/"+selected(division).value+"/"+selected(specialty).value,"GET")
-.then(students => {
-    console.log(students);
-    for(let student of students) {
-        makeRow(student,tbody);
-    }  
-});
+    const year = await dbOptions(document.querySelector("#year"),"years");
+    const division = await dbOptions(document.querySelector("#division"),"divisions");
+    const specialty = await dbOptions(document.querySelector("#specialty"),"specialties");
+    year.addEventListener("change", () => students(year,division,specialty))
+    division.addEventListener("change", () => students(year,division,specialty))
+    specialty.addEventListener("change", () => students(year,division,specialty))
+    console.log(year,division,specialty);
+
+    return {year,division,specialty};
+}
+const {year,division,specialty} = init();
+
+
 
 

@@ -5,20 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="styles.css">
     <title>Asistencias</title>
-    <a href="class.html">Cargar curso</a>
+    
 </head>
 <body>
-    <h1>Asistencias</h1>
-    <select id="year"></select>
-    <select id="specialty"></select>
-    <select id="division"></select>
+    <header>
+        <h1 style="font-size: 50px;margin-right: 5rem;">Asistencias</h1>
+        <select id="year"></select>
+        <select id="specialty"></select>
+        <select id="division"></select>
+        <button style="margin-left: 1rem;"><a href="load.html">Cargar curso</a></button>
+    </header>
     <table id="students">
         <thead>
             <th>Apellido</th>
             <th>Nombre</th>
             <th>Acciones</th>
         </thead>
-        <tbody></tbody>
+        <tbody id="student"></tbody>
     </table>
     <script src="main.js"></script>
 </body>
