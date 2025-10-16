@@ -189,6 +189,44 @@ async function students(year,division,specialty,date_input,toHide,url,button) {
         });
     } catch(e) {console.log(e)}
 }
+async function asistanceGrill(studentId) {
+    // Definiendo variables
+    let m = 1;
+    let today = new Date().toISOString().split('T')[0];
+    let body = document.querySelector("body");
+    let div = document.createElement("div");
+    let table = document.createElement("table");
+    let header = document.createElement("header");
+    let tbody = document.createElement("tbody");
+    // Agregando las columnas (mes y numero de cada dia)
+    for(let i in range(0,31)) {
+        let th = document.createElement("th");
+        th.textContent = i;
+        if(i == 0) th.textContent = "Mes";;
+        header.append(th);
+    }
+    // Agregando las filas ( y la presencia del alumno en cada dia)
+    for(let month of ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"]) {
+        // Nombre del mes
+        let tr = document.createElement("tr");
+        let td = document.createElement("td");
+        td.textContent = month;
+        tr.append(td);
+        for(let day in range(1,31)) {
+            // Asistencia del alumno por dia
+            let td = document.createElement("td");
+            let presence = await httpRequest("asistances/"+studentId+"/"+today.substring(0, 4)+"-"+m+"-"+day,"GET")
+            td.textContent = presence[0].presence;
+            tr.append(td);
+        }
+        tbody.append(tr);
+        m++;
+    }
+    // Agregando la tabla al html
+    table.append(header,tbody);
+    div.append(table);
+    body.append(div);
+}
 async function init(){
     const year = await dbOptions(document.querySelector("#year"),"years");
     const division = await dbOptions(document.querySelector("#division"),"divisions");

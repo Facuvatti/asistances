@@ -217,10 +217,11 @@ app.post("/asistances/:studentId/:presence", (req, res) => {
         res.status(201).json({ message: "Asistencia creada correctamente", result });
     })    
 })
-app.get("/asistances/:studentId", (req, res) => {
+app.get("/asistances/:studentId/:date", (req, res) => {
     const studentId = req.params.studentId;
-    const query = "SELECT s.lastname, s.name,a.presence, a.created AS date FROM asistances JOIN students AS s ON asistances.student = s.id WHERE student = ?";
-    connection.query(query, [studentId], (err, results) => {
+    const date = req.params.date;
+    const query = "SELECT a.presence FROM asistances JOIN students AS s ON asistances.student = s.id WHERE student = ? AND DATE(created) LIKE ?";
+    connection.query(query, [studentId,date], (err, results) => {
         if (err) {
             console.error("Error al obtener asistencias:", err);
             return res.status(500).json({ error: "Error al obtener asistencias" });
