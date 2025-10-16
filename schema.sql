@@ -5,8 +5,9 @@ CREATE TABLE IF NOT EXISTS classes (
     year INT NOT NULL,
     division INT NOT NULL,
     specialty VARCHAR(255) NOT NULL,
-    room int NOT NULL,
-    PRIMARY KEY (id)
+    room int,
+    PRIMARY KEY (id),
+    UNIQUE (year, division, specialty)
 );
 CREATE TABLE IF NOT EXISTS students (
     id INT NOT NULL AUTO_INCREMENT,
@@ -14,7 +15,7 @@ CREATE TABLE IF NOT EXISTS students (
     name VARCHAR(255) NOT NULL,
     class INT NOT NULL,
     PRIMARY KEY (id),
-    FOREIGN KEY (class) REFERENCES classes(id)
+    FOREIGN KEY (class) REFERENCES classes(id) ON DELETE CASCADE
 );
 CREATE TABLE IF NOT EXISTS asistances (
     id INT NOT NULL AUTO_INCREMENT,

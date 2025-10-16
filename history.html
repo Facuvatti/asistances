@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styles.css">
+    <title>Asistencias</title>
+    
+</head>
+<body>
+    <header>
+        <h1>Asistencias</h1>
+        <select id="year"></select>
+        <select id="specialty"></select>
+        <select id="division"></select>
+        <input type="date" id="date"></input>
+        <button id="load" class="menu"><a href="load.html">Cargar curso</a></button>
+        <button id="asistances" class="menu"><a href="index.html">Asistencias</a></button>
+    </header>
+    <div style="display:flex;flex-direction:row;">
+        <table id="students">
+            <thead>
+                <th>Apellido</th>
+                <th>Nombre</th>
+                <th>Presencia</th>
+                <th class="date">Hora</th>
+            </thead>
+            <tbody id="student"></tbody>
+        </table>
+        <label id="details" class="toggle-switch">
+            <input type="checkbox" id="details"/>
+            <span class="slider"></span>
+        </label>
+    </div>
+    <script src="history.js"></script>
+</body>
+</html>

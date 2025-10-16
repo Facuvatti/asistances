@@ -9,11 +9,12 @@
 </head>
 <body>
     <header>
-        <h1 style="font-size: 50px;margin-right: 5rem;">Asistencias</h1>
+        <h1>Asistencias</h1>
         <select id="year"></select>
         <select id="specialty"></select>
         <select id="division"></select>
-        <button style="margin-left: 1rem;"><a href="load.html">Cargar curso</a></button>
+        <button id="load" class="menu"><a href="load.html">Cargar curso</a></button>
+        <button class="menu"><a href="history.html">Historial</a></button>
     </header>
     <table id="students">
         <thead>
@@ -23,6 +24,7 @@
         </thead>
         <tbody id="student"></tbody>
     </table>
+    <button id="new_student">Añadir alumno</button>
     <script src="main.js"></script>
 </body>
 </html>
