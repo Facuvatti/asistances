@@ -17,6 +17,30 @@ function getLatestRecords(data) {
   // Devolvemos los valores del Map como un nuevo array.
   return Array.from(latestRecordsMap.values());
 }
+async function getStudents(year,division,specialty,dateSelector) {
+    const classroom = await httpRequest("class/"+selected(year).value+"/"+selected(division).value+"/"+selected(specialty).value,"GET");
+    date_input = document.querySelector(dateSelector);
+    let students = await httpRequest("asistances/"+classroom[0].id+"/"+date_input.value,"GET")
+    return students
+}
+function expandDetails(event) {
+    if(event.target.checked) {
+        tbody.innerHTML = "";
+        for(let student of students) {
+            makeRow(student,tbody);
+        }
+        visibility([".remove",".date"],false);
+    } else {
+        tbody.innerHTML = "";
+        
+        let latestStudents = getLatestRecords(students);
+        for(let student of latestStudents) {
+            makeRow(student,tbody);
+        }
+        visibility([".remove",".date"],true);
+    }
+            
+}
 async function students(year,division,specialty,date_input,toHide,url,button,tableId) {
     try{
         button = document.querySelector(button);
@@ -39,23 +63,7 @@ async function students(year,division,specialty,date_input,toHide,url,button,tab
                 body.append(button);
             }
             let details = document.querySelector("#details");
-            details.addEventListener("change",(event) => {
-                if(event.target.checked) {
-                    tbody.innerHTML = "";
-                    for(let student of students) {
-                        makeRow(student,tbody);
-                    }
-                    visibility([".remove",".date"],false);
-                } else {
-                    tbody.innerHTML = "";
-                    
-                    let latestStudents = getLatestRecords(students);
-                    for(let student of latestStudents) {
-                        makeRow(student,tbody);
-                    }
-                    visibility([".remove",".date"],true);
-                }
-            })  
+            details.addEventListener("change",(event) => expandDetails(event));  
             details.dispatchEvent(new Event('change'));
         })
         .catch(e =>{ 

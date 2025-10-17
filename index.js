@@ -220,7 +220,7 @@ app.post("/asistances/:studentId/:presence", (req, res) => {
 app.get("/asistances/:studentId/:date", (req, res) => {
     const studentId = req.params.studentId;
     const date = req.params.date;
-    const query = "SELECT a.presence FROM asistances JOIN students AS s ON asistances.student = s.id WHERE student = ? AND DATE(created) LIKE ?";
+    const query = "SELECT a.presence FROM asistances JOIN students AS s ON asistances.student = s.id WHERE student = ? AND DATE(created) = ?";
     connection.query(query, [studentId,date], (err, results) => {
         if (err) {
             console.error("Error al obtener asistencias:", err);
