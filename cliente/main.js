@@ -1,4 +1,4 @@
-import {formResult,httpRequest,capitalize} from "../utlis.js";
+import {formResult,httpRequest,makeRow,visibility} from "../utlis.js";
 
 function createForm(containerID,inputs=[["name","text"]],action="creating",add_method="append",insertBefore="",onlyOne=true) {
     if (document.querySelectorAll("."+action+"-"+containerID).length == 0 || !onlyOne) {
@@ -46,7 +46,7 @@ function createForm(containerID,inputs=[["name","text"]],action="creating",add_m
     }
 }
 
-function radioButton(event,row) {
+function radioButton(event,row,dbTable="asistances") {
     event.preventDefault();
     let button = event.currentTarget;
     let container = button.parentNode;
@@ -60,42 +60,8 @@ function makeButton(name,eventListener,parameter) {
     button.addEventListener("click",function(event) {eventListener(event,parameter)},false);
     return button;
 }
-function makeRow(row,table) {
-    if(row.id == undefined) row.id = row.name;
-    let tr = document.createElement("tr");
-    if(table.tagName == "TD") table.id = table.parentNode.id;
-    try{tr.id = "r"+row.id;}
-    catch(e) {e}
-    let remove = document.createElement("button");
-    remove.textContent = "X";
-    remove.onclick = () => {
-        httpRequest(table.id+"/"+row.id,"DELETE");
-        tr.remove();
-    }    
-    for(let column in row) {
-        if (column == "id") continue;
-        let td = document.createElement("td");
-        let cell = row[column];
-        if (column == "actions") {cell.append(remove)}
-        if (cell.tagName != undefined) {tr.append(cell);continue;}
-        if (typeof cell == "string") cell = capitalize(cell);
-        td.textContent = cell;
-        td.classList.add(column);
-        tr.append(td);
-    }
-    
 
-    if(table.typeof == "string") {table = document.getElementById(table);}
-    table.append(tr);
-}
 
-function visibility(elements,hide,ids=false) {
-    for(let element of elements) {
-        if(typeof element == "string" && !ids) element = document.querySelector(element);
-        if(typeof element == "string" && ids) element = document.getElementById(element);
-        element.hidden = hide;
-    }
-}
 async function students(year,division,specialty,toHide=["#students","#new_student"],url="load.html",button="#load") {
     try{
         

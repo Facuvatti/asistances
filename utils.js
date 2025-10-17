@@ -62,4 +62,61 @@ async function  dbOptions(select,endpoint) {
     if (select.options.length === 1) select.dispatchEvent(new Event('change'));
     return select;
 }
-export {formResult,httpRequest,insertToSelection,capitalize,selected,dbOptions};
+function makeRow(row,table) {
+    if(row.id == undefined) row.id = row.name;
+    let tr = document.createElement("tr");
+    if(table.tagName == "TD" || table.tagName == "TBODY") table.id = table.parentNode.id;
+    try{tr.id = "r"+row.id;}
+    catch(e) {e}
+    let remove = document.createElement("button");
+    remove.textContent = "X";
+    remove.onclick = () => {
+        httpRequest(table.id+"/"+row.id,"DELETE");
+        tr.remove();
+    }
+    remove.classList.add("remove");
+    if(row.actions == undefined) row.remove = remove;
+    for(let column in row) {
+        if (column == "id") continue;
+        let td = document.createElement("td");
+        let cell = row[column];
+        if (column == "actions") {cell.append(remove)}
+        if (cell.tagName != undefined) {tr.append(cell);continue;}
+        if (typeof cell == "string") cell = capitalize(cell);
+        if(column == "date") {cell = cell.slice(11,19);};
+        td.textContent = cell;
+        if (column == "presence") {td.classList.add(td.textContent);td.style = "text-align: center;font-size: 1.2em;font-weight: bold";};
+        td.classList.add(column);
+        tr.append(td);
+    }
+    if(table.typeof == "string") {table = document.getElementById(table);}
+    table.append(tr);
+}
+function visibility(elements,hide,ids=false) {
+    for (let element of elements) {
+        // Seleccionamos todos los elementos según tipo
+        let targets = [];
+        if (typeof element === "string") {
+            if (!ids) targets = document.querySelectorAll(element);
+            else {
+                let el = document.getElementById(element);
+                if (el) targets = [el];
+            }
+        } else {
+            targets = [element];
+        }
+
+        // Aplicamos clases show/hide para animar
+        targets.forEach(target => {
+            if (!target) return;
+            if (hide) {
+                target.classList.remove("show");
+                target.classList.add("hide");
+            } else {
+                target.classList.remove("hide");
+                target.classList.add("show");
+            }
+        });
+    }
+}
+export {formResult,httpRequest,insertToSelection,capitalize,selected,dbOptions,visibility};
