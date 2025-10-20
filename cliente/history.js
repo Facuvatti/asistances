@@ -1,4 +1,4 @@
-import {httpRequest,selected,dbOptions,makeRow,visibility} from "../utlis.js";
+import {httpRequest,selected,dbOptions,makeRow,visibility, insertToSelection} from "./utils.js";
 function getLatestRecords(data) {
   // Usamos un Map para almacenar el registro más reciente encontrado para cada alumno.
   const latestRecordsMap = new Map();
@@ -17,70 +17,132 @@ function getLatestRecords(data) {
   // Devolvemos los valores del Map como un nuevo array.
   return Array.from(latestRecordsMap.values());
 }
-async function getStudents(year,division,specialty,dateSelector) {
-    const classroom = await httpRequest("class/"+selected(year).value+"/"+selected(division).value+"/"+selected(specialty).value,"GET");
-    date_input = document.querySelector(dateSelector);
-    let students = await httpRequest("asistances/"+classroom[0].id+"/"+date_input.value,"GET")
-    return students
-}
-function expandDetails(event) {
+function expandDetails(event,asistances,tbody) {
     if(event.target.checked) {
         tbody.innerHTML = "";
-        for(let student of students) {
+        for(let student of asistances) {
             makeRow(student,tbody);
         }
         visibility([".remove",".date"],false);
     } else {
         tbody.innerHTML = "";
         
-        let latestStudents = getLatestRecords(students);
+        let latestStudents = getLatestRecords(asistances);
         for(let student of latestStudents) {
             makeRow(student,tbody);
         }
         visibility([".remove",".date"],true);
     }
-            
+    
 }
-async function students(year,division,specialty,date_input,toHide,url,button,tableId) {
-    try{
-        button = document.querySelector(button);
-        let anchor = button.querySelector("a");
-        anchor.href = url;
-        let header = document.querySelector("header");
-        header.append(button);
-        visibility(toHide,false);
-        let tbody = document.querySelector("#"+tableId+" > tbody");
-        tbody.innerHTML = "";
-        const classroom = await httpRequest("class/"+selected(year).value+"/"+selected(division).value+"/"+selected(specialty).value,"GET");
-        date_input = document.querySelector(date_input);
-        httpRequest("asistances/"+classroom[0].id+"/"+date_input.value,"GET")
-        .then(students => {
-            console.log(students)
-            if(students.length == 0) {
-                visibility(toHide,true);
-                anchor.href = url+"?year="+selected(year).value+"&division="+selected(division).value+"&specialty="+selected(specialty).value;
-                let body = document.querySelector("body");
-                body.append(button);
+async function getClassroom() {
+    const year = await dbOptions(document.querySelector("#year"),"years");
+    const division = await dbOptions(document.querySelector("#division"),"divisions");
+    const specialty = await dbOptions(document.querySelector("#specialty"),"specialties");
+    let classroom = await httpRequest("class/"+selected(year).value+"/"+selected(division).value+"/"+selected(specialty).value,"GET");
+    classroom = classroom[0].id;
+    return {classroom, year, division, specialty}
+}
+function createTable(){
+    if(document.querySelector("#byClass") == null) {
+        const div = document.createElement('div');
+        div.style.display = 'flex';
+        div.style.flexDirection = 'row';
+        div.id = "byClass";
+        const table = document.createElement('table');
+        table.id = 'asistances';
+
+        const thead = document.createElement('thead');
+
+        const columns = ['Apellido', 'Nombre', 'Presencia', 'Hora'];
+        columns.forEach(column => {
+            const th = document.createElement('th');
+            th.textContent = column;
+            if (column === 'Hora') {
+                th.classList.add('date');
             }
-            let details = document.querySelector("#details");
-            details.addEventListener("change",(event) => expandDetails(event));  
-            details.dispatchEvent(new Event('change'));
-        })
-        .catch(e =>{ 
-            console.log(e);
-            visibility(toHide,true);
-            anchor.href = url+"?year="+selected(year).value+"&division="+selected(division).value+"&specialty="+selected(specialty).value;
-            let body = document.querySelector("body");
-            body.append(button);
+            thead.appendChild(th);
         });
-    } catch(e) {console.log(e)}
+
+        const tbody = document.createElement('tbody');
+        tbody.id = 'student';
+
+        table.appendChild(thead);
+        table.appendChild(tbody);
+
+        const label = document.createElement('label');
+        label.id = 'details';
+        label.classList.add('toggle-switch');
+
+        const input = document.createElement('input');
+        input.type = 'checkbox';
+        input.id = 'details-checkbox';
+
+        const span = document.createElement('span');
+        span.classList.add('slider');
+
+        label.appendChild(input);
+        label.appendChild(span);
+
+        div.appendChild(table);
+        div.appendChild(label);
+
+        document.body.appendChild(div);
+    }
 }
-async function asistanceGrill(studentId) {
+
+function nullClassroom(year,division,specialty) {
+    document.querySelector("#byClass").remove();
+    let header = document.querySelector("header");
+    let url = "/index.html";
+    let button = header.querySelector("#index");
+    let anchor = button.querySelector("a");
+    anchor.href = url+"?year="+selected(year).value+"&division="+selected(division).value+"&specialty="+selected(specialty).value;
+    document.body.append(button);
+}
+function reset() {
+    let header = document.querySelector("header");
+    let button = header.querySelector("#index");
+    let anchor = button.querySelector("a");
+    anchor.href = "/index.html";
+    header.append(button);
+}
+async function asistanceByClass() {
+    reset()
+    createTable();
+    let header = document.querySelector("header");
+    let dateInput = document.createElement("input");dateInput.type = "date";dateInput.id = "date";
+    const today = new Date().toISOString().split('T')[0]
+    dateInput.value = today;
+    dateInput.setAttribute("max",today);
+    dateInput.onchange = () => asistanceByClass();
+    header.insertBefore(dateInput,header.querySelector("#load"));
+    let tbody = document.querySelector("#asistances > tbody");
+    tbody.innerHTML = "";
+
+    let {classroom, year, division, specialty} = await getClassroom();
+    let asistances = await httpRequest("asistances/"+classroom+"/"+dateInput.value,"GET")
+    let details = document.querySelector("#details");
+    details.addEventListener("change",(event) => expandDetails(event,asistances,tbody));  
+    details.dispatchEvent(new Event('change'));
+    if(asistances.length == 0) nullClassroom(year,division,specialty);
+
+
+    
+}
+async function asistanceByStudent() {
+    const{ classroom }= await getClassroom();
+    let students = await httpRequest("students/"+classroom,"GET");
+    console.log(students)
+    let selectStudent = await dbOptions(["id","lastname","name"],students);
+    document.querySelector("header").insertBefore(selectStudent,document.querySelector("#load"));
+    let studentId = selected(selectStudent).value;
     // Definiendo variables
     let m = 1;
     let today = new Date().toISOString().split('T')[0];
     let body = document.querySelector("body");
     let div = document.createElement("div");
+    div.id = "byStudent";
     let table = document.createElement("table");
     let header = document.createElement("header");
     let tbody = document.createElement("tbody");
@@ -113,19 +175,29 @@ async function asistanceGrill(studentId) {
     div.append(table);
     body.append(div);
 }
+function showAsistances(by) {
+    by = selected(by).value;
+    const byStudent = document.querySelector("#byStudent")
+    const byClass = document.querySelector("#byClass")
+    if(by == "Clase") {
+        if(byStudent) byStudent.remove();
+        return asistanceByClass();
+    }
+    if(by == "Alumno") {
+        if(byClass) {byClass.remove();}
+        if(document.querySelector("#date")) document.querySelector("#date").remove();
+        return asistanceByStudent();
+    }
+}
 async function init(){
-    const year = await dbOptions(document.querySelector("#year"),"years");
-    const division = await dbOptions(document.querySelector("#division"),"divisions");
-    const specialty = await dbOptions(document.querySelector("#specialty"),"specialties");
-    let date_input = document.querySelector("#date");
-    const today = new Date().toISOString().split('T')[0]
-    date_input.value = today;
-    date_input.setAttribute("max",today);
-    students(year,division,specialty,"#date",["#students",".slider"],"/index.html","#asistances","students");
-    year.onchange = () => students(year,division,specialty,"#date",["#students",".slider"],"/index.html","#asistances");
-    division.onchange =  () => students(year,division,specialty,"#date",["#students",".slider"],"/index.html","#asistances");
-    specialty.onchange = () => students(year,division,specialty,"#date",["#students",".slider"],"/index.html","#asistances");
-    date_input.onchange = () => students(year,division,specialty,"#date",["#students",".slider"],"/index.html","#asistances");
+    let by = insertToSelection(["Clase","Alumno"]);
+    by.id = "by";
+    document.querySelector("header").insertBefore(by,document.querySelector("#year"));
+    showAsistances(by);
+    by.onchange = () => showAsistances(by);
+    year.onchange = () => {}
+    division.onchange =  () => {}
+    specialty.onchange = () => {}
 }
 
 

@@ -1,4 +1,4 @@
-import {formResult,httpRequest,makeRow,visibility} from "../utlis.js";
+import {formResult,httpRequest,makeRow,visibility,dbOptions,selected} from "./utils.js";
 
 function createForm(containerID,inputs=[["name","text"]],action="creating",add_method="append",insertBefore="",onlyOne=true) {
     if (document.querySelectorAll("."+action+"-"+containerID).length == 0 || !onlyOne) {

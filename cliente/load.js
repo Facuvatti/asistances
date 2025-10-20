@@ -1,4 +1,4 @@
-import {httpRequest} from "../utlis.js";
+import {httpRequest} from "./utils.js";
 
 function makeRoom(e) {
     e.preventDefault();
