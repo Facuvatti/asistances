@@ -94,7 +94,7 @@ function createTable(){
 function nullClassroom(year,division,specialty) {
     document.querySelector("#byClass").remove();
     let header = document.querySelector("header");
-    let url = "/index.html";
+    let url = "index.html";
     let button = header.querySelector("#index");
     let anchor = button.querySelector("a");
     anchor.href = url+"?year="+selected(year).value+"&division="+selected(division).value+"&specialty="+selected(specialty).value;
@@ -102,12 +102,12 @@ function nullClassroom(year,division,specialty) {
 }
 function reset() {
     let header = document.querySelector("header");
-    let button = header.querySelector("#index");
+    let button = document.getElementById("index");
     let anchor = button.querySelector("a");
-    anchor.href = "/index.html";
+    anchor.href = "index.html";
     header.append(button);
 }
-async function asistanceByClass() {
+async function asistanceByClass(classroom,year,division,specialty) {
     reset()
     createTable();
     let header = document.querySelector("header");
@@ -119,8 +119,6 @@ async function asistanceByClass() {
     header.insertBefore(dateInput,header.querySelector("#load"));
     let tbody = document.querySelector("#asistances > tbody");
     tbody.innerHTML = "";
-
-    let {classroom, year, division, specialty} = await getClassroom();
     let asistances = await httpRequest("asistances/"+classroom+"/"+dateInput.value,"GET")
     let details = document.querySelector("#details");
     details.addEventListener("change",(event) => expandDetails(event,asistances,tbody));  
@@ -130,29 +128,47 @@ async function asistanceByClass() {
 
     
 }
-async function asistanceByStudent() {
-    const{ classroom }= await getClassroom();
-    let students = await httpRequest("students/"+classroom,"GET");
-    console.log(students)
-    let selectStudent = await dbOptions(["id","lastname","name"],students);
-    document.querySelector("header").insertBefore(selectStudent,document.querySelector("#load"));
-    let studentId = selected(selectStudent).value;
+async function chooseStudent(classroom) {
+    if(document.querySelector("#selectStudent") == null) {
+        let selectStudent = await dbOptions(undefined,"students/"+classroom,["id","lastname","name"]);
+        selectStudent.id = "selectStudent";
+        selectStudent.onchange = async () => await asistanceByStudent(classroom);
+        document.querySelector("header").insertBefore(selectStudent,document.querySelector("#load"));
+        return selectStudent;
+}
+}
+async function studentGrid() {
+    if(document.querySelector("#byStudent") == null) {
+        let body = document.querySelector("body");
+        let div = document.createElement("div");
+        div.id = "byStudent";
+        let table = document.createElement("table");
+        let thead = document.createElement("thead");
+        // Agregando las columnas (mes y numero de cada dia)
+        for(let i=0;i<32;i++) {
+            let th = document.createElement("th");
+            th.textContent = i;
+            if(i == 0) th.textContent = "Mes";
+            thead.append(th);
+        }
+        table.append(thead);
+        div.append(table);
+        body.insertBefore(div,document.querySelector("script"));
+    }
+}
+async function asistanceByStudent(classroom) {
+    reset();
+    await chooseStudent(classroom);
+    let selectStudent = document.querySelector("#selectStudent");
+    await studentGrid(classroom)
+    const studentId = selected(selectStudent).value;
     // Definiendo variables
     let m = 1;
     let today = new Date().toISOString().split('T')[0];
-    let body = document.querySelector("body");
-    let div = document.createElement("div");
-    div.id = "byStudent";
-    let table = document.createElement("table");
-    let header = document.createElement("header");
+    let table = document.querySelector("#byStudent > table");
+    if(table.querySelector("tbody")) table.querySelector("tbody").remove();
     let tbody = document.createElement("tbody");
-    // Agregando las columnas (mes y numero de cada dia)
-    for(let i in range(0,31)) {
-        let th = document.createElement("th");
-        th.textContent = i;
-        if(i == 0) th.textContent = "Mes";;
-        header.append(th);
-    }
+    tbody.innerHTML = "";
     // Agregando las filas ( y la presencia del alumno en cada dia)
     for(let month of ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"]) {
         // Nombre del mes
@@ -160,44 +176,46 @@ async function asistanceByStudent() {
         let td = document.createElement("td");
         td.textContent = month;
         tr.append(td);
-        for(let day in range(1,31)) {
+        for(let day=1;day<=32;day++) {
             // Asistencia del alumno por dia
             let td = document.createElement("td");
-            let presence = await httpRequest("asistances/"+studentId+"/"+today.substring(0, 4)+"-"+m+"-"+day,"GET")
-            td.textContent = presence[0].presence;
+            let presence = await httpRequest("student/asistances/"+studentId+"/"+today.substring(0, 4)+"-"+m+"-"+day,"GET")
+            if(presence && presence.length > 0) {td.textContent = presence[0]["presence"];}
+            else {td.textContent = "";}
             tr.append(td);
         }
         tbody.append(tr);
         m++;
     }
-    // Agregando la tabla al html
-    table.append(header,tbody);
-    div.append(table);
-    body.append(div);
+    table.append(tbody);
+
 }
-function showAsistances(by) {
+async function showAsistances(by,classroom,year,division,specialty) {
     by = selected(by).value;
     const byStudent = document.querySelector("#byStudent")
     const byClass = document.querySelector("#byClass")
     if(by == "Clase") {
         if(byStudent) byStudent.remove();
-        return asistanceByClass();
+        if(document.querySelector("#selectStudent")) document.querySelector("#selectStudent").remove();
+        return asistanceByClass(classroom,year,division,specialty);
     }
     if(by == "Alumno") {
         if(byClass) {byClass.remove();}
         if(document.querySelector("#date")) document.querySelector("#date").remove();
-        return asistanceByStudent();
+        return asistanceByStudent(classroom);
     }
 }
 async function init(){
     let by = insertToSelection(["Clase","Alumno"]);
     by.id = "by";
     document.querySelector("header").insertBefore(by,document.querySelector("#year"));
-    showAsistances(by);
-    by.onchange = () => showAsistances(by);
+    let {classroom, year, division, specialty} = await getClassroom();
     year.onchange = () => {}
     division.onchange =  () => {}
     specialty.onchange = () => {}
+    await showAsistances(by,classroom,year,division,specialty);
+    by.onchange = async () => await showAsistances(by,classroom,year,division,specialty);
+
 }
 
 

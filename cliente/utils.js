@@ -30,34 +30,32 @@ async function httpRequest(endpoint,method,body,url="http://localhost:3000/",eve
     }
     try {let json = await response.json();return json;} catch(e) {console.log(e,response);}
 }
-function insertToSelection(options,select=undefined) {
+// tengo que arreglar esta funcion
+function insertToSelection(options,select=undefined,ids=undefined) {
     if (select == undefined) {
         select = document.createElement("select");
     }
     if(typeof options == "object"){
         for (let option of options) {
-            let Option = Object.values(option)[0];
             let op = document.createElement("option");
-            if(option["id"]) {op.value = option["id"];delete option["id"];}
-            else op.value = Option
+            if(ids) {op.value = ids[options.indexOf(option)];console.log(op.value);}
+            if (typeof option == "string" && op.value == null) op.value = option;
+            if(typeof option == "object" && op.value == null) op.value = Object.values(option)[0];
+            
             let i = 0;
             let text = "";
-            for(let field of option) {
-                if(i == 0) {text = field;i++;continue;}
-                text = text+" "+field;
-            i++;
-            }
-            op.textContent = text;
+            if (typeof option != "string") {
+                for(let field of Object.values(option)) {
+                    if(i == 0) {text = field;i++;continue;}
+                    text = text+" "+field;
+                i++;
+                }
+                op.textContent = text;
+                
+                
+            } else op.textContent = option;
             select.append(op);
-        }
-    }
-    if(Array.isArray(options)) {
-        console.log(options);
-        for (let option of options) {
-            let op = document.createElement("option");
-            op.value = option;
-            op.textContent = option;
-            select.append(op);
+
         }
     }
     if (select.options.length === 1) {
@@ -78,21 +76,23 @@ function selected(select){
 async function  dbOptions(select,endpoint,fields=undefined) {
     let optionsResponse = await httpRequest(endpoint,"GET");
     let options = [];
+    let ids = [];
     if(fields) {
         for(let optionResponse of optionsResponse) {
             let option;
-            let i;
+            let i=0;
             for(let field of fields) {
+                if(field == "id") {ids.push(optionResponse["id"]);continue;}
                 let value = optionResponse[field];
-                if(field == "id"){ i++;continue;}
-                if(i == 0) {option = value;i++;continue;}
-                option = option+" "+value;
+                if(i == 0) option = value;
+                else option = option+" "+value;
                 i++;
             }
             options.push(option);
         }
     } else options = optionsResponse;
-    select = insertToSelection(options,select);
+    if(ids.length === 0) ids = undefined;
+    select = insertToSelection(options,select,ids);
     if (select.options.length === 1) select.dispatchEvent(new Event('change'));
     return select;
 }
