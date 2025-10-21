@@ -1,4 +1,4 @@
-import {formResult,httpRequest,makeRow,visibility,dbOptions,selected} from "./utils.js";
+import {formResult,httpRequest,makeRow,visibility,dbOptions,selected, getLatestRecords} from "./utils.js";
 
 function createForm(containerID,inputs=[["name","text"]],action="creating",add_method="append",insertBefore="",onlyOne=true) {
     if (document.querySelectorAll("."+action+"-"+containerID).length == 0 || !onlyOne) {
@@ -78,6 +78,8 @@ async function students(year,division,specialty,toHide=["#students","#new_studen
         .catch(e => {console.log(e)});
         httpRequest("students/"+classroom[0].id,"GET")
         .then(students => {
+            let asistances = getLatestRecords(students);
+            // Tengo que usar esto con el asistance.id y compararlo con el student.id, en caso de que sea asi, ponerle el color de la clase que corresponda al boton que corresponda para que al inicializar ya tenga el color de lo ultimo que se guardo
             for(let student of students) {
                 let present = makeButton("P",radioButton,student);
                 let late = makeButton("T",radioButton,student);

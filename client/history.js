@@ -1,22 +1,5 @@
-import {httpRequest,selected,dbOptions,makeRow,visibility, insertToSelection} from "./utils.js";
-function getLatestRecords(data) {
-  // Usamos un Map para almacenar el registro más reciente encontrado para cada alumno.
-  const latestRecordsMap = new Map();
+import {httpRequest,selected,dbOptions,makeRow,visibility, insertToSelection,getLatestRecords} from "./utils.js";
 
-  for (const record of data) {
-    const studentKey = `${record.lastname}-${record.name}`;
-    const newDate = new Date(record.date);
-    
-    // Si el alumno no está en el mapa, o si la fecha de este registro es posterior
-    // a la fecha del registro ya guardado, actualizamos el mapa.
-    if (!latestRecordsMap.has(studentKey) || newDate > new Date(latestRecordsMap.get(studentKey).date)) {
-      latestRecordsMap.set(studentKey, record);
-    }
-  }
-
-  // Devolvemos los valores del Map como un nuevo array.
-  return Array.from(latestRecordsMap.values());
-}
 function expandDetails(event,asistances,tbody) {
     if(event.target.checked) {
         tbody.innerHTML = "";
