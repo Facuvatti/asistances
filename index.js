@@ -172,7 +172,7 @@ app.get("/specialties/", (req, res) => {
         res.json(results);
     });
 })
-app.delete("/student/:id", (req, res) => {
+app.delete("/students/:id", (req, res) => {
     const id = req.params.id;
     const query = "DELETE FROM students WHERE id = ?";
     connection.query(query, [id], (err, result) => {

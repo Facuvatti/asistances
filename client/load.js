@@ -1,8 +1,9 @@
-import {httpRequest} from "./utils.js";
+import {httpRequest,formResult} from "./utils.js";
 
 function makeRoom(e) {
     e.preventDefault();
-    httpRequest(e,"http://localhost:3000/","students","POST");
+    let body = formResult(e);
+    httpRequest("students","POST",body);
 }
 
 window.addEventListener('DOMContentLoaded', () => {
