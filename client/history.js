@@ -90,7 +90,6 @@ function createTable(){
         document.body.appendChild(div);
     }
 }
-
 function nullClassroom(year,division,specialty) {
     document.querySelector("#byClass").remove();
     let header = document.querySelector("header");
@@ -119,6 +118,7 @@ async function asistanceByClass(classroom,year,division,specialty) {
         dateInput.onchange = () => asistanceByClass();
         header.insertBefore(dateInput,header.querySelector("#load"));
     }
+    dateInput = document.querySelector("#date");
     let tbody = document.querySelector("#asistances > tbody");
     tbody.innerHTML = "";
     let asistances = await httpRequest("asistances/"+classroom+"/"+dateInput.value,"GET")
