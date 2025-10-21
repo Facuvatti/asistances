@@ -36,9 +36,10 @@ function expandDetails(event,asistances,tbody) {
     
 }
 async function getClassroom() {
-    const year = await dbOptions(document.querySelector("#year"),"years");
-    const division = await dbOptions(document.querySelector("#division"),"divisions");
-    const specialty = await dbOptions(document.querySelector("#specialty"),"specialties");
+    
+    if(document.querySelector("#year").options.length == 0) {const year = await dbOptions(document.querySelector("#year"),"years");}
+    if(document.querySelector("#division").options.length == 0) {const division = await dbOptions(document.querySelector("#division"),"divisions");}
+    if(document.querySelector("#specialty").options.length == 0) {const specialty = await dbOptions(document.querySelector("#specialty"),"specialties");}
     let classroom = await httpRequest("class/"+selected(year).value+"/"+selected(division).value+"/"+selected(specialty).value,"GET");
     classroom = classroom[0].id;
     return {classroom, year, division, specialty}
@@ -91,13 +92,18 @@ function createTable(){
     }
 }
 function nullClassroom(year,division,specialty) {
-    document.querySelector("#byClass").remove();
+    let byClass = document.querySelector("#byClass")
+    if (byClass) byClass.remove();
     let header = document.querySelector("header");
+    let body = document.querySelector("body")
     let url = "index.html";
     let button = header.querySelector("#index");
     let anchor = button.querySelector("a");
-    anchor.href = url+"?year="+selected(year).value+"&division="+selected(division).value+"&specialty="+selected(specialty).value;
-    document.body.append(button);
+    if(year) year = selected(year).value;
+    if(division) division = selected(division).value;
+    if(specialty) specialty = selected(specialty).value;
+    if(year && division && specialty) anchor.href = url+"?year="+year+"&division="+division+"&specialty="+specialty;
+    if(button) body.append(button);
 }
 function reset() {
     let header = document.querySelector("header");
@@ -106,7 +112,8 @@ function reset() {
     anchor.href = "index.html";
     header.append(button);
 }
-async function asistanceByClass(classroom,year,division,specialty) {
+async function asistanceByClass() {
+    let {classroom, year, division, specialty} = await getClassroom();
     reset()
     createTable();
     let header = document.querySelector("header");
@@ -118,15 +125,16 @@ async function asistanceByClass(classroom,year,division,specialty) {
         dateInput.onchange = () => asistanceByClass();
         header.insertBefore(dateInput,header.querySelector("#load"));
     }
-    dateInput = document.querySelector("#date");
-    let tbody = document.querySelector("#asistances > tbody");
-    tbody.innerHTML = "";
-    let asistances = await httpRequest("asistances/"+classroom+"/"+dateInput.value,"GET")
-    let details = document.querySelector("#details");
-    details.addEventListener("change",(event) => expandDetails(event,asistances,tbody));  
-    details.dispatchEvent(new Event('change'));
-    if(asistances.length == 0) nullClassroom(year,division,specialty);
-
+    let dateInput = document.querySelector("#date");
+    if(dateInput.value && classroom){
+        let tbody = document.querySelector("#asistances > tbody");
+        tbody.innerHTML = "";
+        let asistances = await httpRequest("asistances/"+classroom+"/"+dateInput.value,"GET")
+        let details = document.querySelector("#details");
+        details.addEventListener("change",(event) => expandDetails(event,asistances,tbody));  
+        details.dispatchEvent(new Event('change'));
+        if(asistances.length == 0) nullClassroom(year,division,specialty);
+    } else document.querySelector("#byClass").remove();
 
     
 }
@@ -158,8 +166,9 @@ async function studentGrid() {
         body.insertBefore(div,document.querySelector("script"));
     }
 }
-async function asistanceByStudent(classroom) {
+async function asistanceByStudent() {
     reset();
+    let {classroom} = await getClassroom();
     await chooseStudent(classroom);
     let selectStudent = document.querySelector("#selectStudent");
     await studentGrid(classroom)
@@ -192,31 +201,30 @@ async function asistanceByStudent(classroom) {
     table.append(tbody);
 
 }
-async function showAsistances(by,classroom,year,division,specialty) {
+async function showAsistances(by) {
     by = selected(by).value;
     const byStudent = document.querySelector("#byStudent")
     const byClass = document.querySelector("#byClass")
     if(by == "Clase") {
         if(byStudent) byStudent.remove();
         if(document.querySelector("#selectStudent")) document.querySelector("#selectStudent").remove();
-        return asistanceByClass(classroom,year,division,specialty);
+        return await asistanceByClass();
     }
     if(by == "Alumno") {
         if(byClass) {byClass.remove();}
         if(document.querySelector("#date")) document.querySelector("#date").remove();
-        return asistanceByStudent(classroom);
+        return asistanceByStudent();
     }
 }
 async function init(){
     let by = insertToSelection(["Clase","Alumno"]);
     by.id = "by";
     document.querySelector("header").insertBefore(by,document.querySelector("#year"));
-    let {classroom, year, division, specialty} = await getClassroom();
-    year.onchange = () => {}
-    division.onchange =  () => {}
-    specialty.onchange = () => {}
-    await showAsistances(by,classroom,year,division,specialty);
-    by.onchange = async () => await showAsistances(by,classroom,year,division,specialty);
+    await showAsistances(by);
+    by.onchange = async () => await showAsistances(by);
+    year.addEventListener("change",async () => await showAsistances(by));
+    division.addEventListener("change",async () => await showAsistances(by));
+    specialty.addEventListener("change",async () => await showAsistances(by));
 
 }
 

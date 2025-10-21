@@ -73,7 +73,7 @@ function selected(select){
         return selection;
     }
 }
-async function  dbOptions(select,endpoint,fields=undefined) {
+async function dbOptions(select,endpoint,fields=undefined) {
     let optionsResponse = await httpRequest(endpoint,"GET");
     let options = [];
     let ids = [];
