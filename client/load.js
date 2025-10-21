@@ -5,7 +5,7 @@ function makeRoom(e) {
     let body = formResult(e);
     httpRequest("students","POST",body);
 }
-
+document.querySelector("#load-class").addEventListener("submit", makeRoom);
 window.addEventListener('DOMContentLoaded', () => {
     // Crear un objeto con los parámetros del URL
     const params = new URLSearchParams(window.location.search);
