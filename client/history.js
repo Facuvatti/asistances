@@ -111,12 +111,14 @@ async function asistanceByClass(classroom,year,division,specialty) {
     reset()
     createTable();
     let header = document.querySelector("header");
-    let dateInput = document.createElement("input");dateInput.type = "date";dateInput.id = "date";
-    const today = new Date().toISOString().split('T')[0]
-    dateInput.value = today;
-    dateInput.setAttribute("max",today);
-    dateInput.onchange = () => asistanceByClass();
-    header.insertBefore(dateInput,header.querySelector("#load"));
+    if(document.querySelector("#date") == null){
+        let dateInput = document.createElement("input");dateInput.type = "date";dateInput.id = "date";
+        const today = new Date().toISOString().split('T')[0]
+        dateInput.value = today;
+        dateInput.setAttribute("max",today);
+        dateInput.onchange = () => asistanceByClass();
+        header.insertBefore(dateInput,header.querySelector("#load"));
+    }
     let tbody = document.querySelector("#asistances > tbody");
     tbody.innerHTML = "";
     let asistances = await httpRequest("asistances/"+classroom+"/"+dateInput.value,"GET")
