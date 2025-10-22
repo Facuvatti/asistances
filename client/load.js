@@ -1,10 +1,10 @@
 import {httpRequest,formResult} from "./utils.js";
-
 function makeRoom(e) {
     e.preventDefault();
     let body = formResult(e);
     httpRequest("students","POST",body);
 }
+
 document.querySelector("#load-class").addEventListener("submit", makeRoom);
 window.addEventListener('DOMContentLoaded', () => {
     // Crear un objeto con los parámetros del URL

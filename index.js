@@ -194,6 +194,15 @@ app.get("/class/:year/:division/:specialty", (req, res) => {
         res.json(results);
     });
 })
+app.get("/classes", (req,res) => {
+    connection.query("SELECT id FROM classes", (err, results) => {
+        if (err) {
+            console.error("Error al obtener clase:", err);
+            return res.status(500).json({ error: "Error al obtener clase" });
+        }
+        res.json(results);
+    });
+})
 app.delete("/class/:id", (req, res) => {
     const id = req.params.id;
     const query = "DELETE FROM classes WHERE id = ?";

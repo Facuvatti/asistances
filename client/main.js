@@ -100,7 +100,8 @@ async function students(year,division,specialty,toHide=["#students","#new_studen
 }
 // selects con opciones
 async function init(){
-
+    let response = await httpRequest("classes","GET");
+    if(response.length == 0) window.location.replace("load.html");
     const year = await dbOptions(document.querySelector("#year"),"years");
     const division = await dbOptions(document.querySelector("#division"),"divisions");
     const specialty = await dbOptions(document.querySelector("#specialty"),"specialties");
