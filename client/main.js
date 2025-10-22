@@ -74,11 +74,16 @@ async function students(year,division,specialty,toHide=["#students","#new_studen
         tbody.innerHTML = "";
         let classroom = await httpRequest("class/"+selected(year).value+"/"+selected(division).value+"/"+selected(specialty).value,"GET")
         .catch(e => {console.log(e)});
+        const today = new Date().toISOString().split('T')[0]
+        let asistances = await httpRequest("asistances/"+classroom[0].id+"/"+"2025-10-21","GET")
+        let lastAsistances = getLatestRecords(asistances);
+        console.log("asistencias:",lastAsistances);
         httpRequest("students/"+classroom[0].id,"GET")
         .then(students => {
-            let asistances = getLatestRecords(students);
             // Tengo que usar esto con el asistance.id y compararlo con el student.id, en caso de que sea asi, ponerle el color de la clase que corresponda al boton que corresponda para que al inicializar ya tenga el color de lo ultimo que se guardo
             for(let student of students) {
+                let presence = lastAsistances.find(asistance => {if(asistance.id == student.id) return asistance})
+                console.log("presencia",presence.presence);
                 let present = makeButton("P",radioButton,student);
                 let late = makeButton("T",radioButton,student);
                 let absent = makeButton("A",radioButton,student);
@@ -112,7 +117,7 @@ async function init(){
     let new_student = document.querySelector("#new_student");
     new_student.addEventListener("click", (event) => {
         event.preventDefault();
-        let form =createForm("students",[["lastname","text"],["name","text"]]);
+        let form = createForm("students",[["lastname","text"],["name","text"]]);
         form.onsubmit = (event) => {
             event.preventDefault();
             let body = formResult(event);
