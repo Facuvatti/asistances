@@ -22,7 +22,6 @@ let sqlFileContent = fs.readFileSync('schema.sql', 'utf8');
 const connection = mysql.createConnection({
     host: 'localhost',
     user: 'root',
-    password: 'root',
     multipleStatements: true
 });
 

@@ -1,4 +1,9 @@
 import {httpRequest,formResult} from "./utils.js";
+async function init() {
+    let response = await httpRequest("classes","GET");
+    if(response.length == 0) document.querySelector("#index").remove();
+}
+init()
 function makeRoom(e) {
     e.preventDefault();
     let body = formResult(e);
