@@ -79,21 +79,19 @@ function nullClassroom(year,division,specialty) {
     if (byClass) byClass.remove();
     let header = document.querySelector("header");
     let body = document.querySelector("body")
-    let url = "index.html";
-    let button = header.querySelector("#index");
-    let anchor = button.querySelector("a");
+    let url = "";
+    let anchor = header.querySelector("#index");
     if(year) year = selected(year).value;
     if(division) division = selected(division).value;
     if(specialty) specialty = selected(specialty).value;
-    if(year && division && specialty) anchor.href = url+"?year="+year+"&division="+division+"&specialty="+specialty;
-    if(button) body.append(button);
+    if(year && division && specialty) anchor.href ="index.html?year="+year+"&division="+division+"&specialty="+specialty;
+    if(anchor) body.append(anchor);
 }
 function reset() {
-    let header = document.querySelector("header");
-    let button = document.getElementById("index");
-    let anchor = button.querySelector("a");
+    let header = document.querySelector("header")
+    let anchor = document.querySelector("#index");
     anchor.href = "index.html";
-    header.append(button);
+    header.append(anchor);
 }
 async function asistanceByClass() {
     let {classroom, year, division, specialty} = await getClassroom();
