@@ -62,16 +62,14 @@ function makeButton(name,eventListener,parameter) {
 }
 
 
-async function students(year,division,specialty,toHide=["#students","#new_student"],url="load.html",button="#load") {
+async function students(year,division,specialty,toHide=["#students","#new_student"]) {
     try{
         
-        button = document.querySelector(button);
-        let anchor = button.querySelector("a");
-        anchor.href = url;
+        let anchor = document.querySelector("#load");
+        anchor.href = "load.html";
         let header = document.querySelector("header");
-        header.append(button);
+        header.append(anchor);
         visibility(toHide,false);
-        
         let tbody = document.querySelector("#students > tbody");
         tbody.innerHTML = "";
         let classroom = await httpRequest("class/"+selected(year).value+"/"+selected(division).value+"/"+selected(specialty).value,"GET")
@@ -95,7 +93,7 @@ async function students(year,division,specialty,toHide=["#students","#new_studen
             visibility(toHide,true);
             anchor.href = url+"?year="+selected(year).value+"&division="+selected(division).value+"&specialty="+selected(specialty).value;
             let body = document.querySelector("body");
-            body.append(button);
+            body.append(anchor);
             console.log(e);
         });
     } catch(e) {console.log(e)}
@@ -117,6 +115,9 @@ async function init(){
         form.onsubmit = (event) => {
             event.preventDefault();
             let body = formResult(event);
+            let response = httpRequest("student","POST",body);
+            const id = response[0].id;
+            body.id = id;
             let present = makeButton("P",radioButton,body);
             let late = makeButton("T",radioButton,body);
             let absent = makeButton("A",radioButton,body);
@@ -124,13 +125,12 @@ async function init(){
             let actions = document.createElement("td");
             actions.append(present,late,absent,retired);
             body.actions = actions;
-            console.log(body);
+            delete body.id;
             makeRow(body,document.querySelector("#students > tbody"));
             body.year = selected(year).value;
             body.division = selected(division).value;
             body.specialty = selected(specialty).value;
             delete body.actions;
-            httpRequest("student","POST",body);
             document.querySelector(".creating-students").remove();
             
         }
