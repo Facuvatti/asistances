@@ -79,7 +79,6 @@ function nullClassroom(year,division,specialty) {
     if (byClass) byClass.remove();
     let header = document.querySelector("header");
     let body = document.querySelector("body")
-    let url = "";
     let anchor = header.querySelector("#index");
     if(year) year = selected(year).value;
     if(division) division = selected(division).value;
