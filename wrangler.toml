@@ -1,0 +1,9 @@
+name = "asistances-backend"
+compatibility_date = "2025-10-25"
+main = "index.js"
+type = "javascript"
+
+# Bindings: conectar D1
+[[d1_databases]]
+binding = "D1"          # Nombre que usarás en env.D1
+database_name = "ATTENDANCE_DB"
