@@ -1,5 +1,5 @@
-CREATE DATABASE IF NOT EXISTS preception;
-USE preception;
+CREATE DATABASE IF NOT EXISTS attendance;
+USE attendance;
 CREATE TABLE IF NOT EXISTS classes (
     id INT NOT NULL AUTO_INCREMENT,
     year INT NOT NULL,
