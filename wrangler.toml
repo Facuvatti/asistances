@@ -6,4 +6,4 @@ type = "javascript"
 # Bindings: conectar D1
 [[d1_databases]]
 binding = "D1"          # Nombre que usarás en env.D1
-database_name = "ATTENDANCE_DB"
+database_name = "attendance"
