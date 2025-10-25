@@ -1,27 +1,27 @@
-CREATE DATABASE IF NOT EXISTS attendance;
-USE attendance;
+-- Para D1 o SQLite
+PRAGMA foreign_keys = ON;
+
 CREATE TABLE IF NOT EXISTS classes (
-    id INT NOT NULL AUTO_INCREMENT,
-    year INT NOT NULL,
-    division INT NOT NULL,
-    specialty VARCHAR(255) NOT NULL,
-    room int,
-    PRIMARY KEY (id),
-    UNIQUE (year, division, specialty)
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    year INTEGER NOT NULL,
+    division INTEGER NOT NULL,
+    specialty TEXT NOT NULL,
+    room INTEGER,
+    UNIQUE(year, division, specialty)
 );
+
 CREATE TABLE IF NOT EXISTS students (
-    id INT NOT NULL AUTO_INCREMENT,
-    lastname VARCHAR(255) NOT NULL,
-    name VARCHAR(255) NOT NULL,
-    class INT NOT NULL,
-    PRIMARY KEY (id),
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    lastname TEXT NOT NULL,
+    name TEXT NOT NULL,
+    class INTEGER NOT NULL,
     FOREIGN KEY (class) REFERENCES classes(id) ON DELETE CASCADE
 );
+
 CREATE TABLE IF NOT EXISTS asistances (
-    id INT NOT NULL AUTO_INCREMENT,
-    student INT NOT NULL,
-    created timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    presence ENUM('P', 'A', 'T', 'RA' ) NOT NULL,
-    PRIMARY KEY (id),
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    student INTEGER NOT NULL,
+    created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    presence TEXT NOT NULL, -- 'P', 'A', 'T', 'RA'
     FOREIGN KEY (student) REFERENCES students(id) ON DELETE CASCADE
 );
