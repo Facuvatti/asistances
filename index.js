@@ -251,7 +251,7 @@ app.delete("/asistances/:id", (req, res) => {
 app.get("/asistances/:classId/:date", (req, res) => {
     const classId = req.params.classId;
     const date = req.params.date;
-    const query = "SELECT s.lastname, s.name,a.presence, a.created AS date, a.id FROM asistances AS a JOIN students AS s ON a.student = s.id WHERE s.class = ? AND DATE(a.created) = ?";
+    const query = "SELECT s.id as student,s.lastname, s.name,a.presence, a.created AS date, a.id FROM asistances AS a JOIN students AS s ON a.student = s.id WHERE s.class = ? AND DATE(a.created) = ?";
     connection.query(query, [classId, date], (err, results) => {
         if (err) {
             console.error("Error al obtener asistencias:", err);

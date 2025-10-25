@@ -54,10 +54,10 @@ function radioButton(event,row,dbTable="asistances") {
     button.className = button.textContent;
     httpRequest("asistances/"+row.id+"/"+button.textContent,"POST");
 }
-function makeButton(name,eventListener,parameter) {
+function makeButton(name,eventListener,parameters) {
     let button = document.createElement("button");
     button.textContent = name;
-    button.addEventListener("click",function(event) {eventListener(event,parameter)},false);
+    button.addEventListener("click",function(event) {eventListener(event,...parameters)},false);
     return button;
 }
 
@@ -75,28 +75,31 @@ async function students(year,division,specialty,toHide=["#students","#new_studen
         let classroom = await httpRequest("class/"+selected(year).value+"/"+selected(division).value+"/"+selected(specialty).value,"GET")
         .catch(e => {console.log(e)});
         const today = new Date().toISOString().split('T')[0]
-        let asistances = await httpRequest("asistances/"+classroom[0].id+"/"+"2025-10-21","GET")
+        let asistances = await httpRequest("asistances/"+classroom[0].id+"/"+today,"GET")
         let lastAsistances = getLatestRecords(asistances);
-        console.log("asistencias:",lastAsistances);
         httpRequest("students/"+classroom[0].id,"GET")
         .then(students => {
-            // Tengo que usar esto con el asistance.id y compararlo con el student.id, en caso de que sea asi, ponerle el color de la clase que corresponda al boton que corresponda para que al inicializar ya tenga el color de lo ultimo que se guardo
+            console.log(students);
             for(let student of students) {
-                let presence = lastAsistances.find(asistance => {if(asistance.id == student.id) return asistance})
-                console.log("presencia",presence.presence);
-                let present = makeButton("P",radioButton,student);
-                let late = makeButton("T",radioButton,student);
-                let absent = makeButton("A",radioButton,student);
-                let retired = makeButton("RA",radioButton,student);
+                let present = makeButton("P",radioButton,[student]);
+                let late = makeButton("T",radioButton,[student]);
+                let absent = makeButton("A",radioButton,[student]);
+                let retired = makeButton("RA",radioButton,[student]);
                 let actions = document.createElement("td");
                 actions.append(present,late,absent,retired);
                 student.actions = actions;
                 makeRow(student,tbody);
+                if(lastAsistances.length > 0) {
+                    let bttns = Array.from(student.actions.children);
+                    let presence = lastAsistances.find(asistance => {if(asistance.student == student.id) return asistance});
+                    if(presence) presence = presence.presence;
+                    bttns.forEach(bttn => {if(bttn.textContent == presence) bttn.className = bttn.textContent;});
+                }
             }  
         })
         .catch(e =>{ 
             visibility(toHide,true);
-            anchor.href = url+"?year="+selected(year).value+"&division="+selected(division).value+"&specialty="+selected(specialty).value;
+            anchor.href = "load.html?year="+selected(year).value+"&division="+selected(division).value+"&specialty="+selected(specialty).value;
             let body = document.querySelector("body");
             body.append(anchor);
             console.log(e);
