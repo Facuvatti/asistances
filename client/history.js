@@ -110,7 +110,7 @@ async function asistanceByClass() {
         let tbody = document.querySelector("#asistances > tbody");
         tbody.innerHTML = "";
         let asistances = await httpRequest("asistances/"+classroom+"/"+dateInput.value,"GET")
-        if(asistances.student) delete asistances.student;
+        asistances.forEach(asistance => delete asistance.student);
         let details = document.querySelector("#details");
         details.addEventListener("change",(event) => expandDetails(event,asistances,tbody));  
         details.dispatchEvent(new Event('change'));
