@@ -1,7 +1,6 @@
 name = "asistances-backend"
 compatibility_date = "2025-10-25"
 main = "index.js"
-type = "javascript"
 
 # Bindings: conectar D1
 [[d1_databases]]

@@ -127,7 +127,8 @@ function corsHeaders() {
 export default {
     async fetch(request, env) {
         const db = env.D1
-        const body = await request.json()
+        let body = {};
+        if (request.method === "POST" || request.method === "PUT") {body = await request.json()}
         let classroom = new Classroom(db);
         let student = new Student(db);
         let asistance = new Asistance(db);
