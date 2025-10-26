@@ -135,10 +135,19 @@ export default {
         let student = new Student(db);
         let asistance = new Asistance(db);
         const headers = corsHeaders();
-        console.log("request", request,"classroom",classroom,"student",student,"asistance",asistance,"headers",headers);
+       console.log(
+  "request:", request.url,
+  "method:", request.method,
+  "body:", JSON.stringify(body, null, 2),
+  "classroom:", JSON.stringify(classroom, null, 2),
+  "student:", JSON.stringify(student, null, 2),
+  "asistance:", JSON.stringify(asistance, null, 2),
+);
         try {
             if (request.method === "OPTIONS") {return new Response(null, { status: 204, headers });}
-
+            handleRoute(request, "/", "GET", () => {
+                return new Response(JSON.stringify({ message: "ok" }), { status: 204, headers });
+            })
             // -------------------- POST /students --------------------
             handleRoute(request, "/students", "POST", async () => {
                 let { year, division, specialty, students } = body
