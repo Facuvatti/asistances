@@ -92,6 +92,26 @@ class Asistance {
         ).bind(classId, date).all();
         return rows.results;
     }
+    async listByStudent(studentId) {
+        const rows = await this.db.prepare(
+            `SELECT s.id as student, s.lastname, s.name, a.presence, a.created AS date, a.id
+                FROM asistances a
+                JOIN students s ON a.student = s.id
+                WHERE a.student = ? 
+                AND a.id IN (
+                    SELECT id
+                    FROM (
+                        SELECT id,
+                            MAX(datetime(created)) OVER (PARTITION BY date(created)) AS max_date
+                        FROM asistances
+                        WHERE student = ?
+                    ) t
+                    WHERE datetime(created) = max_date
+                    )
+                    ORDER BY a.created DESC;`
+        ).bind(studentId).all();
+        return rows.results;
+    }
 
 }
 function pathToRegex(path) {
@@ -203,6 +223,11 @@ export default {
                 // -------------------- GET /asistances/:classId/:date --------------------
                 handleRoute(request, "/asistances/:classId/:date", "GET", async (classId,date) => {
                     let asistances = await asistance.listByDate(classId, date);
+                    return new Response(JSON.stringify(asistances), { status: 200, headers })
+                }),
+                // -------------------- GET /student/asistances/:student --------------------
+                handleRoute(request, "/student/asistances/:student", "GET", async (id) => {
+                    let asistances = await asistance.listByStudent(id);
                     return new Response(JSON.stringify(asistances), { status: 200, headers })
                 })
             ];
