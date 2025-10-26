@@ -94,16 +94,11 @@ class Asistance {
     }
 
 }
-function pathToRegex(pathPattern) {
-  // Escapamos los caracteres especiales de regex, excepto los dos puntos (:)
-  let regexString = pathPattern
-    .replace(/[-\/\\^$+?.()|[\]{}]/g, '\\$&')
-    // Reemplazamos :paramName por un grupo de captura
-    .replace(/\\:([a-zA-Z_][a-zA-Z0-9_]*)/g, '([^/]+)');
-
-  // Agregamos ^ al inicio y $ al final para coincidencia exacta
-  return new RegExp(`^${regexString}$`);
+function pathToRegex(path) {
+  const pattern = path.replace(/:([^/]+)/g, "([^/]+)");
+  return new RegExp(`^${pattern}$`);
 }
+
 function handleRoute(request, endpoint, method, handler) {
     const regex = pathToRegex(endpoint);
     const url = new URL(request.url);
