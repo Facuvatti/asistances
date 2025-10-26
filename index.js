@@ -109,7 +109,7 @@ class Asistance {
                     WHERE datetime(created) = max_date
                     )
                     ORDER BY a.created DESC;`
-        ).bind(studentId).all();
+        ).bind(studentId, studentId).all();
         return rows.results;
     }
 
