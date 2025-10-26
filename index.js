@@ -106,14 +106,17 @@ function pathToRegex(pathPattern) {
 }
 function handleRoute(request, endpoint, method, handler) {
     endpoint = pathToRegex(endpoint);
+    console.log("endpoint",endpoint);
     const url = new URL(request.url);
+    console.log("url",url);
     let path = url.pathname;
+    console.log("path",path);
     const match = path.match(endpoint);
+    console.log(match);
     if (match && request.method === method) {
-        console.log("endpoint existente");
-        path = path.split("/").splice(1)
-        console.log(path);
-        return handler(...path);
+        let params = path.split("/").splice(1)
+        console.log("Parametros:",params);
+        return handler(...params);
     }
     return null;
 }
@@ -136,17 +139,15 @@ export default {
         let asistance = new Asistance(db);
         const headers = corsHeaders();
        console.log(
-  "request:", request.url,
+  "URL:", request.url,
   "method:", request.method,
   "body:", JSON.stringify(body, null, 2),
-  "classroom:", JSON.stringify(classroom, null, 2),
-  "student:", JSON.stringify(student, null, 2),
-  "asistance:", JSON.stringify(asistance, null, 2),
+  "db", JSON.stringify(db, null, 2)
 );
         try {
             if (request.method === "OPTIONS") {return new Response(null, { status: 204, headers });}
             handleRoute(request, "/", "GET", () => {
-                return new Response(JSON.stringify({ message: "ok" }), { status: 204, headers });
+                return new Response(null, { status: 204, headers });
             })
             // -------------------- POST /students --------------------
             handleRoute(request, "/students", "POST", async () => {
@@ -213,7 +214,7 @@ export default {
                 let asistances = await asistance.listByDate(classId, date);
                 return new Response(JSON.stringify(asistances), { status: 200, headers })
             })
-            return new Response("Not Found", { status: 404, headers })
+            //return new Response("Not Found", { status: 404, headers })
             
         } catch(err) {return new Response(JSON.stringify({ error: err.message }), { status: 500, headers })}
 
