@@ -148,8 +148,13 @@ export default {
             if (request.method === "OPTIONS") {return new Response(null, { status: 204, headers });}
             let endpoints = [
             handleRoute(request, "/", "GET", () => {
-                return new Response(null, { status: 204, headers });
-            }),
+            return new Response("<h1>API funcionando 🚀</h1>", {
+                status: 200,
+                headers: {
+                ...headers,
+                "Content-Type": "text/html; charset=utf-8",
+                },
+            });}),
             // -------------------- POST /students --------------------
             handleRoute(request, "/students", "POST", async () => {
                 let { year, division, specialty, students } = body
