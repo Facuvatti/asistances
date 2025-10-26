@@ -110,6 +110,7 @@ async function handleRoute(request, endpoint, method, handler) {
     let path = url.pathname;
     const match = path.match(endpoint);
     if (match && request.method === method) {
+        console.log("endpoint existente");
         path = path.split("/").splice(1)
         return handler(...path);
     }
