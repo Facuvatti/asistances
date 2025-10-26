@@ -50,7 +50,7 @@ class Student {
         for (const student of students) {
             const [lastname, name] = student.split(" ");
             try {
-                const id = await this.crear({ lastname, name, classId });
+                const id = await this.create({ lastname, name, classId });
                 inserts.push({ id });
             } catch (err) {
                 errors.push({ student, error: err.message });
@@ -144,7 +144,7 @@ export default {
                     students = students.split("\n");
                     let classID = await classroom.getId(year, division, specialty);
                     let { inserts, errors } = await student.createMultiple(students, classID);
-                    return new Response(JSON.stringify({ inserts, errors }), { status: 201, headers })
+                    return new Response({ message: "Todos los estudiantes insertados correctamente", inserts }, { status: 201, headers })
                 }),
                 // -------------------- POST /student --------------------
                 handleRoute(request, "/student", "POST", async () => {
@@ -155,6 +155,7 @@ export default {
                 // -------------------- GET /students/:classId --------------------
                 handleRoute(request, "/students/:classId", "GET", async (classId) => {
                     let students = await student.listByClassroom(classId);
+                    console.log(JSON.stringify(students));
                     return new Response(JSON.stringify(students), { status: 200, headers  })
                 }),
                 // -------------------- DELETE /students/:id -------------------
