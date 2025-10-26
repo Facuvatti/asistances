@@ -108,7 +108,7 @@ function handleRoute(request, endpoint, method, handler) {
     console.log("Interpretacion: ",regex);
     console.log("Match?", match);
     if (match && request.method === method) {
-        let params = path.split("/").splice(1)
+        const params = match.splice(1);
         console.log(params);
         return handler(...params);
     }
