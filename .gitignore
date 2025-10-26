@@ -3,3 +3,4 @@ node_modules/
 startmysql.sh
 .wrangler/
 attendance.db
+package-lock.json

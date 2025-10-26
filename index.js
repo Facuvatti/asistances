@@ -43,11 +43,11 @@ class Student {
         return result.lastInsertRowid;
     }
 
-    async createMultiple(alumnos, classId) {
+    async createMultiple(students, classId) {
         const inserts = [];
         const errors = [];
 
-        for (const student of alumnos) {
+        for (const student of students) {
             const [lastname, name] = student.split(" ");
             try {
                 const id = await this.crear({ lastname, name, classId });
@@ -183,7 +183,7 @@ export default {
                 // -------------------- GET /class/:year/:division/:specialty --------------------
                 handleRoute(request, "/class/:year/:division/:specialty", "GET", async (year,division,specialty) => {
                     let classId = await classroom.getId(year, division, specialty);
-                    return new Response(JSON.stringify({ classId }), { status: 200, headers })
+                    return new Response(JSON.stringify([{ id: classId }]), { status: 200, headers })
                 }),
                 // -------------------- GET /classes --------------------
                 handleRoute(request, "/classes", "GET", async () => {
