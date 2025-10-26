@@ -144,7 +144,7 @@ export default {
                     students = students.split("\n");
                     let classID = await classroom.getId(year, division, specialty);
                     let { inserts, errors } = await student.createMultiple(students, classID);
-                    return new Response({ message: "Todos los estudiantes insertados correctamente", inserts }, { status: 201, headers })
+                    return new Response({ message: "Todos los estudiantes insertados correctamente", inserts : inserts }, { status: 201, headers })
                 }),
                 // -------------------- POST /student --------------------
                 handleRoute(request, "/student", "POST", async () => {
