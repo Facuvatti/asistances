@@ -105,14 +105,10 @@ function pathToRegex(pathPattern) {
   return new RegExp(`^${regexString}$`);
 }
 function handleRoute(request, endpoint, method, handler) {
-    endpoint = pathToRegex(endpoint);
-    console.log("endpoint",endpoint);
+    const regex = pathToRegex(endpoint);
     const url = new URL(request.url);
-    console.log("url",url);
     let path = url.pathname;
-    console.log("path",path);
-    const match = path.match(endpoint);
-    console.log(match);
+    const match = path.match(regex);
     if (match && request.method === method) {
         let params = path.split("/").splice(1)
         console.log("Parametros:",params);
@@ -138,88 +134,78 @@ export default {
         let student = new Student(db);
         let asistance = new Asistance(db);
         const headers = corsHeaders();
-       console.log(
-  "URL:", request.url,
-  "method:", request.method,
-  "body:", JSON.stringify(body, null, 2),
-  "db", JSON.stringify(db, null, 2)
-);
         try {
             if (request.method === "OPTIONS") {return new Response(null, { status: 204, headers });}
             let endpoints = [
-            handleRoute(request, "/", "GET", () => {
-            return new Response("<h1>API funcionando 🚀</h1>", {
-                status: 200,
-                headers: {
-                ...headers,
-                "Content-Type": "text/html; charset=utf-8",
-                },
-            });}),
-            // -------------------- POST /students --------------------
-            handleRoute(request, "/students", "POST", async () => {
-                let { year, division, specialty, students } = body
-                students = students.split("\n");
-                let classID = await classroom.getId(year, division, specialty);
-                let { inserts, errors } = await student.createMultiple(students, classID);
-                return new Response(JSON.stringify({ inserts, errors }), { status: 201, headers })
-            }),
-            // -------------------- POST /student --------------------
-            handleRoute(request, "/student", "POST", async () => {
-                let { lastname, name, classId } = body
-                let id = await student.create({ lastname, name, classId });
-                return new Response(JSON.stringify({ id }), { status: 201, headers  })
-            }),
-            // -------------------- GET /students/:classId --------------------
-            handleRoute(request, "/students/:classId", "GET", async (classId) => {
-                let students = await student.listByClassroom(classId);
-                return new Response(JSON.stringify(students), { status: 200, headers  })
-            }),
-            // -------------------- DELETE /students/:id -------------------
-            handleRoute(request, "/students/:id", "DELETE", async (id) => {
-                await student.remove(id);
-                return new Response(JSON.stringify({ message: "Estudiante eliminado" }), { status: 200, headers  })
-            }),
-            // -------------------- GET /years --------------------
-            handleRoute(request, "/years", "GET", async () => {
-                let years = await classroom.listAttr("year");
-                console.log(years);
-                return new Response(JSON.stringify(years), { status: 200, headers })
-            }),
-            // -------------------- GET /divisions --------------------
-            handleRoute(request, "/divisions", "GET", async () => {
-                let divisions = await classroom.listAttr("division");
-                return new Response(JSON.stringify(divisions), { status: 200, headers })
-            }),
-            // -------------------- GET /specialties --------------------
-            handleRoute(request, "/specialties", "GET", async () => {
-                let specialties = await classroom.listAttr("specialty");
-                return new Response(JSON.stringify(specialties), { status: 200, headers })
-            }),
-            // -------------------- GET /class/:year/:division/:specialty --------------------
-            handleRoute(request, "/class/:year/:division/:specialty", "GET", async (year,division,specialty) => {
-                let classId = await classroom.getId(year, division, specialty);
-                return new Response(JSON.stringify({ classId }), { status: 200, headers })
-            }),
-            // -------------------- GET /classes --------------------
-            handleRoute(request, "/classes", "GET", async () => {
-                let classes = await classroom.list();
-                return new Response(JSON.stringify(classes), { status: 200, headers })
-            }),
-            // -------------------- DELETE /class/:id --------------------
-            handleRoute(request, "/class/:id", "DELETE", async (id) => {
-                await classroom.remove(id);
-                return new Response(JSON.stringify({ message: "Clase eliminada" }), { status: 200, headers })
-            }),
-            // -------------------- POST /asistances/:studentId/:presence --------------------
-            handleRoute(request, "/asistances/:studentId/:presence", "POST", async (studentId,presence) => {
-                await asistance.create(studentId, presence);
-                return new Response(null, { status: 204, headers })
-            }),
-            // -------------------- GET /asistances/:classId/:date --------------------
-            handleRoute(request, "/asistances/:classId/:date", "GET", async (classId,date) => {
-                let asistances = await asistance.listByDate(classId, date);
-                return new Response(JSON.stringify(asistances), { status: 200, headers })
-            })];
+                handleRoute(request, "/", "GET", () => {
+                    return new Response("API funcionando", {status: 200, headers});
+                }),
+                // -------------------- POST /students --------------------
+                handleRoute(request, "/students", "POST", async () => {
+                    let { year, division, specialty, students } = body
+                    students = students.split("\n");
+                    let classID = await classroom.getId(year, division, specialty);
+                    let { inserts, errors } = await student.createMultiple(students, classID);
+                    return new Response(JSON.stringify({ inserts, errors }), { status: 201, headers })
+                }),
+                // -------------------- POST /student --------------------
+                handleRoute(request, "/student", "POST", async () => {
+                    let { lastname, name, classId } = body
+                    let id = await student.create({ lastname, name, classId });
+                    return new Response(JSON.stringify({ id }), { status: 201, headers  })
+                }),
+                // -------------------- GET /students/:classId --------------------
+                handleRoute(request, "/students/:classId", "GET", async (classId) => {
+                    let students = await student.listByClassroom(classId);
+                    return new Response(JSON.stringify(students), { status: 200, headers  })
+                }),
+                // -------------------- DELETE /students/:id -------------------
+                handleRoute(request, "/students/:id", "DELETE", async (id) => {
+                    await student.remove(id);
+                    return new Response(JSON.stringify({ message: "Estudiante eliminado" }), { status: 200, headers  })
+                }),
+                // -------------------- GET /years --------------------
+                handleRoute(request, "/years", "GET", async () => {
+                    let years = await classroom.listAttr("year");
+                    console.log(years);
+                    return new Response(JSON.stringify(years), { status: 200, headers })
+                }),
+                // -------------------- GET /divisions --------------------
+                handleRoute(request, "/divisions", "GET", async () => {
+                    let divisions = await classroom.listAttr("division");
+                    return new Response(JSON.stringify(divisions), { status: 200, headers })
+                }),
+                // -------------------- GET /specialties --------------------
+                handleRoute(request, "/specialties", "GET", async () => {
+                    let specialties = await classroom.listAttr("specialty");
+                    return new Response(JSON.stringify(specialties), { status: 200, headers })
+                }),
+                // -------------------- GET /class/:year/:division/:specialty --------------------
+                handleRoute(request, "/class/:year/:division/:specialty", "GET", async (year,division,specialty) => {
+                    let classId = await classroom.getId(year, division, specialty);
+                    return new Response(JSON.stringify({ classId }), { status: 200, headers })
+                }),
+                // -------------------- GET /classes --------------------
+                handleRoute(request, "/classes", "GET", async () => {
+                    let classes = await classroom.list();
+                    return new Response(JSON.stringify(classes), { status: 200, headers })
+                }),
+                // -------------------- DELETE /class/:id --------------------
+                handleRoute(request, "/class/:id", "DELETE", async (id) => {
+                    await classroom.remove(id);
+                    return new Response(JSON.stringify({ message: "Clase eliminada" }), { status: 200, headers })
+                }),
+                // -------------------- POST /asistances/:studentId/:presence --------------------
+                handleRoute(request, "/asistances/:studentId/:presence", "POST", async (studentId,presence) => {
+                    await asistance.create(studentId, presence);
+                    return new Response(null, { status: 204, headers })
+                }),
+                // -------------------- GET /asistances/:classId/:date --------------------
+                handleRoute(request, "/asistances/:classId/:date", "GET", async (classId,date) => {
+                    let asistances = await asistance.listByDate(classId, date);
+                    return new Response(JSON.stringify(asistances), { status: 200, headers })
+                })
+            ];
             for(let endpoint of endpoints) {
                 if (endpoint) {
                     return endpoint;
