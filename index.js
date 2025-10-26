@@ -27,7 +27,7 @@ class Classroom {
 
     async listAttr(atributo) {
         const rows = await this.db.prepare(`SELECT DISTINCT ${atributo} FROM classes`).all();
-        return rows.results.map(r => r[atributo]);
+        return rows.results;
     }
 }
 
@@ -111,7 +111,6 @@ function handleRoute(request, endpoint, method, handler) {
     const match = path.match(regex);
     if (match && request.method === method) {
         let params = path.split("/").splice(1)
-        console.log("Parametros:",params);
         return handler(...params);
     }
     return null;
@@ -152,7 +151,7 @@ export default {
                 handleRoute(request, "/student", "POST", async () => {
                     let { lastname, name, classId } = body
                     let id = await student.create({ lastname, name, classId });
-                    return new Response(JSON.stringify({ id }), { status: 201, headers  })
+                    return new Response(JSON.stringify([{ id : id }]), { status: 201, headers  })
                 }),
                 // -------------------- GET /students/:classId --------------------
                 handleRoute(request, "/students/:classId", "GET", async (classId) => {
