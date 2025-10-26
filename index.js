@@ -108,9 +108,13 @@ function handleRoute(request, endpoint, method, handler) {
     const regex = pathToRegex(endpoint);
     const url = new URL(request.url);
     let path = url.pathname;
+    console.log("Endpoint enviado:",path);
     const match = path.match(regex);
+    console.log("Interpretacion: ",regex);
+    console.log("Match?", match);
     if (match && request.method === method) {
         let params = path.split("/").splice(1)
+        console.log(params);
         return handler(...params);
     }
     return null;
@@ -181,6 +185,7 @@ export default {
                 }),
                 // -------------------- GET /class/:year/:division/:specialty --------------------
                 handleRoute(request, "/class/:year/:division/:specialty", "GET", async (year,division,specialty) => {
+                    console.log(year,division,specialty);
                     let classId = await classroom.getId(year, division, specialty);
                     return new Response(JSON.stringify([{ id: classId }]), { status: 200, headers })
                 }),
