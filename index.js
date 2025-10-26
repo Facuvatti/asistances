@@ -103,13 +103,9 @@ function handleRoute(request, endpoint, method, handler) {
     const regex = pathToRegex(endpoint);
     const url = new URL(request.url);
     let path = url.pathname;
-    console.log("Endpoint enviado:",path);
     const match = path.match(regex);
-    console.log("Interpretacion: ",regex);
-    console.log("Match?", match);
     if (match && request.method === method) {
         const params = match.splice(1);
-        console.log(params);
         return handler(...params);
     }
     return null;
@@ -127,7 +123,13 @@ export default {
     async fetch(request, env) {
         const db = env.D1;
         let body = {};
-        if (request.method === "POST" || request.method === "PUT") {body = await request.json()}
+        if (request.method === "POST" || request.method === "PUT") {  
+            try {
+                body = await request.json();
+            } catch {
+                body = {};
+            }
+        }
         let classroom = new Classroom(db);
         let student = new Student(db);
         let asistance = new Asistance(db);
@@ -155,7 +157,6 @@ export default {
                 // -------------------- GET /students/:classId --------------------
                 handleRoute(request, "/students/:classId", "GET", async (classId) => {
                     let students = await student.listByClassroom(classId);
-                    console.log(JSON.stringify(students));
                     return new Response(JSON.stringify(students), { status: 200, headers  })
                 }),
                 // -------------------- DELETE /students/:id -------------------
@@ -166,7 +167,6 @@ export default {
                 // -------------------- GET /years --------------------
                 handleRoute(request, "/years", "GET", async () => {
                     let years = await classroom.listAttr("year");
-                    console.log(years);
                     return new Response(JSON.stringify(years), { status: 200, headers })
                 }),
                 // -------------------- GET /divisions --------------------
