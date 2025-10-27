@@ -113,6 +113,9 @@ class Asistance {
         ).bind(studentId, studentId).all();
         return rows.results;
     }
+    async remove(asistanceId) {
+        await this.db.prepare("DELETE FROM asistances WHERE id = ?").bind(asistanceId).run();
+    }
 
 }
 function pathToRegex(path) {
