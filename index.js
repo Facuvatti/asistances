@@ -1,3 +1,4 @@
+import bcrypt from  "https://cdn.jsdelivr.net/npm/bcryptjs@2.4.3/dist/bcrypt.min.js";
 class Classroom {
     constructor(db) {
         this.db = db;
@@ -118,7 +119,8 @@ function pathToRegex(path) {
   const pattern = path.replace(/:([^/]+)/g, "([^/]+)");
   return new RegExp(`^${pattern}$`);
 }
-
+const hashPassword = async (password) => await bcrypt.hash(password, 10);
+const verifyPassword = async (password, hash) => await bcrypt.compare(password, hash);
 function handleRoute(request, endpoint, method, handler) {
     const regex = pathToRegex(endpoint);
     const url = new URL(request.url);
@@ -137,7 +139,16 @@ function corsHeaders() {
     "Access-Control-Allow-Headers": "Content-Type",
   };
 }
+async function requireSession(request, db) {
+    const cookie = request.headers.get("Cookie") || "";
+    const match = cookie.match(/session=([^;]+)/);
+    if (!match) return null;
 
+    const token = match[1];
+    const session = await db.prepare("SELECT user_id FROM sessions WHERE token = ?")
+                            .bind(token).first();
+    return session ? session.user_id : null;
+}
 
 export default {
     async fetch(request, env) {
@@ -159,6 +170,34 @@ export default {
             let endpoints = [
                 handleRoute(request, "/", "GET", () => {
                     return new Response("API funcionando", {status: 200, headers});
+                }),
+                handleRoute(request, "/register","POST", async () => {
+                    const { name, password } = body;
+                    const hashedPassword = await hashPassword(password);
+                    try{
+                        await db.prepare("INSERT INTO users (name, password) VALUES (?, ?)").bind(name, hashedPassword).run();
+                        return new Response(JSON.stringify({ message: "Usuario creado con éxito" }), {status: 201, headers});
+                    } catch (err) {return new Response(JSON.stringify({ error: err.message }), {status: 400, headers});}
+                }),
+                handleRoute(request, "/login", "POST", async () => {
+                    const { name, password} = body;
+
+                    const row = await db.prepare("SELECT password FROM users WHERE name = ?").bind(name).first();
+                    if (!row) return new Response(JSON.stringify({ error: "Usuario no encontrado" }), { status: 404, headers });
+                    
+                    const valid = await verifyPassword(password, row.password);
+                    if (!valid) return new Response(JSON.stringify({ error: "Contraseña incorrecta" }), { status: 401, headers });
+                    const sessionToken = crypto.randomUUID();
+
+                    // --- Guardarlo en la DB (opcional, para validar sesiones) ---
+                    await db.prepare("INSERT INTO sessions (token, user) VALUES (?, ?)").bind(sessionToken, row.id).run();
+
+                    // --- Devolver cookie ---
+                    const loginHeaders = {
+                        ...corsHeaders(),
+                        "Set-Cookie": `session=${sessionToken}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=86400`
+                    };
+                    return new Response(JSON.stringify({ message: "Login exitoso" }), { status: 200, headers: loginHeaders });
                 }),
                 // -------------------- POST /students --------------------
                 handleRoute(request, "/students", "POST", async () => {
@@ -218,7 +257,7 @@ export default {
                 // -------------------- POST /asistances/:studentId/:presence --------------------
                 handleRoute(request, "/asistances/:studentId/:presence", "POST", async (studentId,presence) => {
                     await asistance.create(studentId, presence);
-                    return new Response(null, { status: 204, headers })
+                    return new Response(JSON.stringify({ message: "Asistencia creada", presence: presence }), { status: 200, headers })
                 }),
                 // -------------------- GET /asistances/:classId/:date --------------------
                 handleRoute(request, "/asistances/:classId/:date", "GET", async (classId,date) => {
