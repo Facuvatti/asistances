@@ -158,9 +158,9 @@ async function hashSha256(string) {
 
 
 async function verifyPassword(password, dbHash) {
-    const hashIngresadoBuffer = await hashSha256(password);
-    const hashAlmacenadoBuffer = hexToArrayBuffer(dbHash);
-    return crypto.subtle.timingSafeEqual(hashIngresadoBuffer, hashAlmacenadoBuffer);
+    const loginHash = await hashSha256(password);
+    const dbHashArrayBuffer = hexToArrayBuffer(dbHash);
+    return crypto.subtle.timingSafeEqual(loginHash, dbHashArrayBuffer);
 }
 
 
@@ -174,6 +174,12 @@ function hexToArrayBuffer(hexString) {
     }
     return arrayBuffer;
 }
+function bufferToHex(buffer) {
+  return [...new Uint8Array(buffer)]
+    .map(b => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
 export default {
     async fetch(request, env) {
         const db = env.D1;
@@ -199,7 +205,8 @@ export default {
                     const { name, password } = body;
                     try{
                         const hashedPassword = await hashSha256(password);
-                        await db.prepare("INSERT INTO users (name, password) VALUES (?, ?)").bind(name, hashedPassword).run();
+                        const hexHash = bufferToHex(hashedPassword);
+                        await db.prepare("INSERT INTO users (name, password) VALUES (?, ?)").bind(name, hexHash).run();
                         return new Response(JSON.stringify({ message: "Usuario creado con éxito" }), {status: 201, headers});
                     } catch (err) {return new Response(JSON.stringify({ error: err.message }), {status: 400, headers});}
                 }),
@@ -207,9 +214,8 @@ export default {
                     const { name, password} = body;
                     const row = await db.prepare("SELECT password FROM users WHERE name = ?").bind(name).first();
                     if (!row) return new Response(JSON.stringify({ error: "Usuario no encontrado" }), { status: 404, headers });
-                    const dbPassword = row.password;
-                    const hashedPassword = await hashSha256(password);
-                    const valid = await verifyPassword(hashedPassword, dbPassword);
+                    const dbHash = row.password;
+                    const valid = await verifyPassword(password, dbHash);
                     if (!valid) return new Response(JSON.stringify({ error: "Contraseña incorrecta" }), { status: 401, headers });
                     const sessionToken = crypto.randomUUID();
 
