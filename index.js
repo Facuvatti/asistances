@@ -209,7 +209,7 @@ export default {
                         console.log(hexHash);
                         await db.prepare("INSERT INTO users (name, password) VALUES (?, ?)").bind(name, hexHash).run();
                         return new Response(JSON.stringify({ message: "Usuario creado con éxito" }), {status: 201, headers});
-                    } catch (err) {return new Response(JSON.stringify({ error: err.message }), {status: 400, headers});}
+                    } catch (err) {console.log(err);return new Response(JSON.stringify({ error: err.message }), {status: 400, headers});}
                 }),
                 handleRoute(request, "/login", "POST", async () => {
                     const { name, password } = body;
