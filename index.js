@@ -1,4 +1,3 @@
-import bcrypt from  "https://cdn.jsdelivr.net/npm/bcryptjs@2.4.3/dist/bcrypt.min.js";
 class Classroom {
     constructor(db) {
         this.db = db;
@@ -122,8 +121,6 @@ function pathToRegex(path) {
   const pattern = path.replace(/:([^/]+)/g, "([^/]+)");
   return new RegExp(`^${pattern}$`);
 }
-const hashPassword = async (password) => await bcrypt.hash(password, 10);
-const verifyPassword = async (password, hash) => await bcrypt.compare(password, hash);
 function handleRoute(request, endpoint, method, handler) {
     const regex = pathToRegex(endpoint);
     const url = new URL(request.url);
@@ -152,7 +149,31 @@ async function requireSession(request, db) {
                             .bind(token).first();
     return session ? session.user_id : null;
 }
+async function hashSha256(string) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(string);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  return hashBuffer;
+}
 
+
+async function verifyPassword(password, dbHash) {
+    const hashIngresadoBuffer = await hashSha256(password);
+    const hashAlmacenadoBuffer = hexToArrayBuffer(dbHash);
+    return crypto.subtle.timingSafeEqual(hashIngresadoBuffer, hashAlmacenadoBuffer);
+}
+
+
+function hexToArrayBuffer(hexString) {
+    if (hexString.length % 2 !== 0) {
+    throw new Error('La cadena hexadecimal debe tener un número par de caracteres.');
+    }
+    const arrayBuffer = new Uint8Array(hexString.length / 2);
+    for (let i = 0; i < hexString.length / 2; i++) {
+    arrayBuffer[i] = parseInt(hexString.substring(i * 2, i * 2 + 2), 16);
+    }
+    return arrayBuffer;
+}
 export default {
     async fetch(request, env) {
         const db = env.D1;
@@ -176,19 +197,19 @@ export default {
                 }),
                 handleRoute(request, "/register","POST", async () => {
                     const { name, password } = body;
-                    const hashedPassword = await hashPassword(password);
                     try{
+                        const hashedPassword = await hashSha256(password);
                         await db.prepare("INSERT INTO users (name, password) VALUES (?, ?)").bind(name, hashedPassword).run();
                         return new Response(JSON.stringify({ message: "Usuario creado con éxito" }), {status: 201, headers});
                     } catch (err) {return new Response(JSON.stringify({ error: err.message }), {status: 400, headers});}
                 }),
                 handleRoute(request, "/login", "POST", async () => {
                     const { name, password} = body;
-
                     const row = await db.prepare("SELECT password FROM users WHERE name = ?").bind(name).first();
                     if (!row) return new Response(JSON.stringify({ error: "Usuario no encontrado" }), { status: 404, headers });
-                    
-                    const valid = await verifyPassword(password, row.password);
+                    const dbPassword = row.password;
+                    const hashedPassword = await hashSha256(password);
+                    const valid = await verifyPassword(hashedPassword, dbPassword);
                     if (!valid) return new Response(JSON.stringify({ error: "Contraseña incorrecta" }), { status: 401, headers });
                     const sessionToken = crypto.randomUUID();
 
