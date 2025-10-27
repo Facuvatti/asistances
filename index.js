@@ -268,6 +268,11 @@ export default {
                 handleRoute(request, "/student/asistances/:student", "GET", async (id) => {
                     let asistances = await asistance.listByStudent(id);
                     return new Response(JSON.stringify(asistances), { status: 200, headers })
+                }),
+                // -------------------- DELETE /asistances/:id --------------------
+                handleRoute(request, "/asistances/:id", "DELETE", async (id) => {
+                    await asistance.remove(id);
+                    return new Response(JSON.stringify({ message: "Asistencia eliminada" }), { status: 200, headers })
                 })
             ];
             for(let endpoint of endpoints) {
