@@ -1,3 +1,17 @@
+// async function createSession (db,row) {
+//     const sessionToken = crypto.randomUUID();
+//     await db.prepare("INSERT INTO sessions (token, device) VALUES (?, ?)").bind(sessionToken, row.id).run();
+//     const loginHeaders = {...corsHeaders(),"Set-Cookie": `session=${sessionToken}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=86400`};
+//     return loginHeaders;
+// } 
+// async function requireSession(request, db) {
+//     const cookie = request.headers.get("Cookie") || "";
+//     const match = cookie.match(/session=([^;]+)/);
+//     if (!match) return null;
+//     const token = match[1];
+//     const session = await db.prepare("SELECT user_id FROM sessions WHERE token = ?").bind(token).first();
+//     return session ? session.user_id : null;
+// }
 class Classroom {
     constructor(db) {
         this.db = db;
@@ -139,31 +153,17 @@ function corsHeaders() {
     "Access-Control-Allow-Headers": "Content-Type",
   };
 }
-async function requireSession(request, db) {
-    const cookie = request.headers.get("Cookie") || "";
-    const match = cookie.match(/session=([^;]+)/);
-    if (!match) return null;
-
-    const token = match[1];
-    const session = await db.prepare("SELECT user_id FROM sessions WHERE token = ?")
-                            .bind(token).first();
-    return session ? session.user_id : null;
-}
 async function hashSha256(string) {
   const encoder = new TextEncoder();
   const data = encoder.encode(string);
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);
   return hashBuffer;
 }
-
-
 async function verifyPassword(password, dbHash) {
     const loginHash = await hashSha256(password);
     const dbHashArrayBuffer = hexToArrayBuffer(dbHash);
     return crypto.subtle.timingSafeEqual(loginHash, dbHashArrayBuffer);
 }
-
-
 function hexToArrayBuffer(hexString) {
     if (hexString.length % 2 !== 0) {
     throw new Error('La cadena hexadecimal debe tener un número par de caracteres.');
@@ -201,34 +201,43 @@ export default {
                 handleRoute(request, "/", "GET", () => {
                     return new Response("API funcionando", {status: 200, headers});
                 }),
+                handleRoute(request, "/device/:fingerprint", "GET", async (fingerprint) => {
+                    const device = await db.prepare("SELECT * FROM devices WHERE fingerprint = ?").bind(fingerprint).first();
+                    if(device) return new Response({exists: true}, {status: 200, headers});
+                    else return new Response({exists: false}, {status: 200, headers});
+                }),
+                handleRoute(request, "/device", "POST", async () => {
+                    const { fingerprint } = body;
+                    let result = await db.prepare("INSERT INTO devices (fingerprint) VALUES (?)").bind(fingerprint).run();
+                    return new Response(JSON.stringify({ id: result.lastRowId, message: "Dispositivo creado con éxito" }), {status: 201, headers});
+                }),
                 handleRoute(request, "/register","POST", async () => {
-                    const { name, password } = body;
+                    const { name, password, device } = body;
                     try{
                         const hashedPassword = await hashSha256(password);
                         const hexHash = bufferToHex(hashedPassword);
-                        console.log(hexHash);
-                        await db.prepare("INSERT INTO users (name, password) VALUES (?, ?)").bind(name, hexHash).run();
-                        return new Response(JSON.stringify({ message: "Usuario creado con éxito" }), {status: 201, headers});
+                        const user = await db.prepare("INSERT INTO users (name, password) VALUES (?, ?)").bind(name, hexHash).run();
+                        const userId = user.lastRowId;
+                        const result = await db.prepare("UPDATE devices SET user = ? WHERE id = ?").bind(userId, device).run();
+                        return new Response(JSON.stringify({id: userId, message: "Usuario creado con éxito", device: result }), {status: 201, headers});
                     } catch (err) {console.log(err);return new Response(JSON.stringify({ error: err.message }), {status: 400, headers});}
                 }),
                 handleRoute(request, "/login", "POST", async () => {
-                    const { name, password } = body;
-                    const row = await db.prepare("SELECT password FROM users WHERE name = ?").bind(name).first();
-                    if (!row) return new Response(JSON.stringify({ error: "Usuario no encontrado" }), { status: 404, headers });
-                    const dbHash = row.password;
+                    const { name, password, fingerprint } = body;
+                    
+                    const user = await db.prepare("SELECT * FROM users WHERE name = ?").bind(name).first();
+                    if (!user) return new Response(JSON.stringify({ error: "Usuario no encontrado" }), { status: 404, headers });
+
+                    const dbHash = user.password;
                     const valid = await verifyPassword(password, dbHash);
                     if (!valid) return new Response(JSON.stringify({ error: "Contraseña incorrecta" }), { status: 401, headers });
-                    const sessionToken = crypto.randomUUID();
-
-                    // --- Guardarlo en la DB (opcional, para validar sesiones) ---
-                    await db.prepare("INSERT INTO sessions (token, user) VALUES (?, ?)").bind(sessionToken, row.id).run();
-
-                    // --- Devolver cookie ---
-                    const loginHeaders = {
-                        ...corsHeaders(),
-                        "Set-Cookie": `session=${sessionToken}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=86400`
-                    };
-                    return new Response(JSON.stringify({ message: "Login exitoso" }), { status: 200, headers: loginHeaders });
+                    
+                    const device = await db.prepare("SELECT user FROM devices WHERE fingerprint = ?").bind(fingerprint).first();
+                    if(device.user == null) {
+                        const result = await db.prepare("UPDATE devices SET user = ? WHERE id = ?").bind(user.id, fingerprint).run();
+                    }                    
+                    
+                    return new Response(JSON.stringify({ message: "Login exitoso", device: result }), { status: 200, headers: loginHeaders });
                 }),
                 // -------------------- POST /students --------------------
                 handleRoute(request, "/students", "POST", async () => {
