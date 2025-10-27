@@ -25,11 +25,12 @@ CREATE TABLE IF NOT EXISTS classes (
     division INTEGER NOT NULL,
     specialty TEXT NOT NULL,
     user INTEGER,
-    device INTEGER NOT NULL,
+    device INTEGER,
     FOREIGN KEY (user) REFERENCES users(id),
     FOREIGN KEY (device) REFERENCES devices(id),
     UNIQUE(year, division, specialty, user),
-    UNIQUE(year, division, specialty, device)
+    UNIQUE(year, division, specialty, device),
+    CHECK ((class IS NOT NULL AND subject IS NULL) OR (class IS NULL AND subject IS NOT NULL))
 );
 
 CREATE TABLE IF NOT EXISTS subjects (

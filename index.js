@@ -233,9 +233,8 @@ export default {
                     if (!valid) return new Response(JSON.stringify({ error: "Contraseña incorrecta" }), { status: 401, headers });
                     
                     const device = await db.prepare("SELECT user FROM devices WHERE fingerprint = ?").bind(fingerprint).first();
-                    if(device.user == null) {
-                        const result = await db.prepare("UPDATE devices SET user = ? WHERE id = ?").bind(user.id, fingerprint).run();
-                    }                    
+                    let result;
+                    if(device.user == null) result = await db.prepare("UPDATE devices SET user = ? WHERE id = ?").bind(user.id, fingerprint).run();                
                     
                     return new Response(JSON.stringify({ message: "Login exitoso", device: result }), { status: 200, headers: loginHeaders });
                 }),
