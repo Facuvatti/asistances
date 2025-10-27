@@ -206,12 +206,13 @@ export default {
                     try{
                         const hashedPassword = await hashSha256(password);
                         const hexHash = bufferToHex(hashedPassword);
+                        console.log(hexHash);
                         await db.prepare("INSERT INTO users (name, password) VALUES (?, ?)").bind(name, hexHash).run();
                         return new Response(JSON.stringify({ message: "Usuario creado con éxito" }), {status: 201, headers});
                     } catch (err) {return new Response(JSON.stringify({ error: err.message }), {status: 400, headers});}
                 }),
                 handleRoute(request, "/login", "POST", async () => {
-                    const { name, password} = body;
+                    const { name, password } = body;
                     const row = await db.prepare("SELECT password FROM users WHERE name = ?").bind(name).first();
                     if (!row) return new Response(JSON.stringify({ error: "Usuario no encontrado" }), { status: 404, headers });
                     const dbHash = row.password;
