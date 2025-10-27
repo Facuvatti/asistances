@@ -204,7 +204,7 @@ export default {
                 handleRoute(request, "/device/:fingerprint", "GET", async (fingerprint) => {
                     const device = await db.prepare("SELECT * FROM devices WHERE fingerprint = ?").bind(fingerprint).first();
                     if(device) return new Response({exists: true}, {status: 200, headers});
-                    else return new Response({exists: false}, {status: 200, headers});
+                    else return new Response(JSON.stringify({exists: false}), {status: 200, headers});
                 }),
                 handleRoute(request, "/device", "POST", async () => {
                     const { fingerprint } = body;
