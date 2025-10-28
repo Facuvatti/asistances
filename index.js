@@ -1,66 +1,69 @@
-// async function createSession (db,row) {
-//     const sessionToken = crypto.randomUUID();
-//     await db.prepare("INSERT INTO sessions (token, device) VALUES (?, ?)").bind(sessionToken, row.id).run();
-//     const loginHeaders = {...corsHeaders(),"Set-Cookie": `session=${sessionToken}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=86400`};
-//     return loginHeaders;
-// } 
-// async function requireSession(request, db) {
-//     const cookie = request.headers.get("Cookie") || "";
-//     const match = cookie.match(/session=([^;]+)/);
-//     if (!match) return null;
-//     const token = match[1];
-//     const session = await db.prepare("SELECT user_id FROM sessions WHERE token = ?").bind(token).first();
-//     return session ? session.user_id : null;
-// }
-class Classroom {
-    constructor(db) {
+class Table {
+    constructor (db,session,name) {
         this.db = db;
+        this.session = session;
+        this.name = name;
+        if(this.session.device){ this.auth = " device = "+this.session.device;this.join =""; }
+        if(this.session.user) {this.auth = "d.user = "+this.session.user;this.join = " JOIN devices d ON c.device = d.id"; }
+        console.log(this.join,this.add)
+    }
+    async confirmAuth(id,action) {
+        const confirmation = await this.db.prepare(`SELECT id FROM ${this.name} `+this.join+" WHERE id = ? AND "+this.auth).bind(id).first();
+        if(confirmation) return action();
+        else throw new Error("No estas autorizado");
+    }
+}
+class Classroom extends Table {
+    constructor(db,session,name) {
+        super(db,session,name);
     }
     async getId(year, division, specialty) {
         const classroom = await this.db.prepare(
-            "SELECT id FROM classes WHERE year = ? AND division = ? AND specialty = ?"
+            `SELECT id FROM classes ${this.join} WHERE year = ? AND division = ? AND specialty = ? AND ${this.auth}`
         ).bind(year, division, specialty).first();
 
         if (classroom) return classroom.id;
-
+        
         const result = await this.db.prepare(
-            "INSERT INTO classes (year, division, specialty) VALUES (?, ?, ?)"
-        ).bind(year, division, specialty).run();
-
+            "INSERT INTO classes (year, division, specialty, device) VALUES (?, ?, ?, ?)"
+        ).bind(year, division, specialty, this.session.device).run();
+        
         return result.lastInsertRowid;
     }
-
+    
     async remove(classId) {
         await this.db.prepare("DELETE FROM classes WHERE id = ?").bind(classId).run();
     }
-
+    
     async list() {
-        const rows = await this.db.prepare("SELECT id FROM classes").all();
+        const rows = await this.db.prepare(`SELECT id FROM classes ${this.join} WHERE ${this.auth}`).all();
         return rows.results;
     }
-
-    async listAttr(atributo) {
-        const rows = await this.db.prepare(`SELECT DISTINCT ${atributo} FROM classes`).all();
+    
+    async listAttr(attr) {
+        const rows = await this.db.prepare(`SELECT DISTINCT ${attr} FROM classes ${this.join} WHERE ${this.auth}`).all();
         return rows.results;
     }
 }
 
-class Student {
-    constructor(db) {
-        this.db = db;
+class Student extends Table{
+    constructor(db,session,name) {
+        super(db,session,name);
     }
-
+    
     async create({ lastname, name, classId }) {
-        const result = await this.db.prepare(
-            "INSERT INTO students (lastname, name, class) VALUES (?, ?, ?)"
-        ).bind(lastname, name, classId).run();
-        return result.lastInsertRowid;
+        await this.confirmAuth(classId,async function(){
+            const result = await this.db.prepare(
+                `INSERT INTO ${this.name} (lastname, name, class) VALUES (?, ?, ?)`
+            ).bind(lastname, name, classId).run();
+            return result.lastInsertRowid;
+        });
     }
-
+    
     async createMultiple(students, classId) {
         const inserts = [];
         const errors = [];
-
+        
         for (const student of students) {
             const [lastname, name] = student.split(" ");
             try {
@@ -73,67 +76,76 @@ class Student {
 
         return { inserts, errors };
     }
-
+    
     async listByClassroom(classId) {
         const rows = await this.db.prepare(
-            "SELECT id, lastname, name FROM students WHERE class = ? ORDER BY lastname, name"
+            "SELECT id, lastname, name FROM students "+this.join+" WHERE class = ? AND "+this.auth+" ORDER BY lastname, name"
         ).bind(classId).all();
         return rows.results;
     }
-
+    
     async remove(studentId) {
-        await this.db.prepare("DELETE FROM students WHERE id = ?").bind(studentId).run();
+        const confirm = await this.db.prepare("SELECT id FROM students "+this.join+" WHERE id = ? AND "+this.auth).bind(studentId).first();
+        if(confirm) await this.db.prepare("DELETE FROM students WHERE id = ?").bind(studentId).run();
+        else throw new Error("No estas autorizado a eliminar estudiantes");
     }
 }
 
-class Asistance {
-    constructor(db) {
-        this.db = db;
+class Asistance extends Table{
+    constructor(db,session,name) {
+        super(db,session,name);
     }
-
-    async create(studentId, presence) {
-        await this.db.prepare(
-            "INSERT INTO asistances (student, presence) VALUES (?, ?)"
-        ).bind(studentId, presence).run();
+    
+    async create(studentId, presence, options) {
+        this.confirmAuth(studentId,async function(){
+            let option;
+            if(options.class) option = "class";
+            if(options.subject) option = "subject";
+            await this.db.prepare(
+                `INSERT INTO asistances (student, presence, ${option}) VALUES (?, ?, ${options.class})`
+            ).bind(studentId, presence).run();
+        });
     }
-
-    async listByDate(classId, date) {
+    
+    async listByDate(id, date, subject) {
+        let option = "s.class"
+        let joinSubjects = "";
+        if(subject) {joinSubjects = "JOIN subjects s ON a.subject = s.id"; option = "a.subject";}
         const rows = await this.db.prepare(
             `SELECT s.id as student, s.lastname, s.name, a.presence, a.created AS date, a.id
-             FROM asistances a
-             JOIN students s ON a.student = s.id
-             WHERE s.class = ? AND DATE(a.created) = ?`
-        ).bind(classId, date).all();
+            FROM asistances a
+            JOIN students s ON a.student = s.id
+            ${joinSubjects}
+            WHERE DATE(a.created) = ? AND ${option} = ?`
+        ).bind(id, date).all();
         return rows.results;
     }
     async listByStudent(studentId) {
         const rows = await this.db.prepare(
             `SELECT s.id as student, s.lastname, s.name, a.presence, a.created AS date, a.id
-                FROM asistances a
-                JOIN students s ON a.student = s.id
-                WHERE a.student = ? 
-                AND a.id IN (
-                    SELECT id
-                    FROM (
-                        SELECT id,
-                            MAX(datetime(created)) OVER (PARTITION BY date(created)) AS max_date
-                        FROM asistances
-                        WHERE student = ?
-                    ) t
-                    WHERE datetime(created) = max_date
-                    )
-                    ORDER BY a.created DESC;`
+            FROM asistances a
+            JOIN students s ON a.student = s.id
+            WHERE a.student = ? 
+            AND a.id IN (
+            SELECT id
+            FROM (
+            SELECT id,
+            MAX(datetime(created)) OVER (PARTITION BY date(created)) AS max_date
+            FROM asistances
+            WHERE student = ?
+            ) t
+            WHERE datetime(created) = max_date
+            )
+            ORDER BY a.created DESC;`
         ).bind(studentId, studentId).all();
         return rows.results;
     }
-    async remove(asistanceId) {
-        await this.db.prepare("DELETE FROM asistances WHERE id = ?").bind(asistanceId).run();
-    }
-
+    async remove(asistanceId) {this.confirmAuth(asistanceId,async () => await this.db.prepare("DELETE FROM asistances WHERE id = ?").bind(asistanceId).run());}
+            
 }
 function pathToRegex(path) {
-  const pattern = path.replace(/:([^/]+)/g, "([^/]+)");
-  return new RegExp(`^${pattern}$`);
+    const pattern = path.replace(/:([^/]+)/g, "([^/]+)");
+    return new RegExp(`^${pattern}$`);
 }
 function handleRoute(request, endpoint, method, handler) {
     const regex = pathToRegex(endpoint);
@@ -147,17 +159,17 @@ function handleRoute(request, endpoint, method, handler) {
     return null;
 }
 function corsHeaders() {
-  return {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
-  };
+    return {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
+    };
 }
 async function hashSha256(string) {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(string);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  return hashBuffer;
+    const encoder = new TextEncoder();
+    const data = encoder.encode(string);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    return hashBuffer;
 }
 async function verifyPassword(password, dbHash) {
     const loginHash = await hashSha256(password);
@@ -166,18 +178,37 @@ async function verifyPassword(password, dbHash) {
 }
 function hexToArrayBuffer(hexString) {
     if (hexString.length % 2 !== 0) {
-    throw new Error('La cadena hexadecimal debe tener un número par de caracteres.');
+        throw new Error('La cadena hexadecimal debe tener un número par de caracteres.');
     }
     const arrayBuffer = new Uint8Array(hexString.length / 2);
     for (let i = 0; i < hexString.length / 2; i++) {
-    arrayBuffer[i] = parseInt(hexString.substring(i * 2, i * 2 + 2), 16);
+        arrayBuffer[i] = parseInt(hexString.substring(i * 2, i * 2 + 2), 16);
     }
     return arrayBuffer;
 }
 function bufferToHex(buffer) {
-  return [...new Uint8Array(buffer)]
+    return [...new Uint8Array(buffer)]
     .map(b => b.toString(16).padStart(2, "0"))
     .join("");
+}
+async function createSession (db,deviceId) {
+    const sessionToken = crypto.randomUUID();
+    await db.prepare("INSERT INTO sessions (token, device) VALUES (?, ?)").bind(sessionToken, deviceId).run();
+    const loginHeaders = {...corsHeaders(),"Set-Cookie": `session=${sessionToken}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=86400`};
+    return loginHeaders;
+} 
+async function getSession(request, db) {
+    const cookie = request.headers.get("Cookie") || "";
+    const match = cookie.match(/session=([^;]+)/);
+    if (!match) return null;
+    const token = match[1];
+    const session = await db.prepare("SELECT device FROM sessions WHERE token = ?").bind(token).first();
+    const device = await db.prepare("SELECT user FROM devices WHERE id = ?").bind(session.device).first();
+    let result = {};
+    
+    if (device) result.user = device.user;
+    else result.device = session.device; 
+    return result;
 }
 
 export default {
@@ -191,6 +222,7 @@ export default {
                 body = {};
             }
         }
+        const session = getSession(request, db);
         let classroom = new Classroom(db);
         let student = new Student(db);
         let asistance = new Asistance(db);
@@ -201,25 +233,25 @@ export default {
                 handleRoute(request, "/", "GET", () => {
                     return new Response("API funcionando", {status: 200, headers});
                 }),
-                handleRoute(request, "/device/:fingerprint", "GET", async (fingerprint) => {
-                    const device = await db.prepare("SELECT * FROM devices WHERE fingerprint = ?").bind(fingerprint).first();
-                    if(device) return new Response({exists: true}, {status: 200, headers});
-                    else return new Response(JSON.stringify({exists: false}), {status: 200, headers});
-                }),
                 handleRoute(request, "/device", "POST", async () => {
                     const { fingerprint } = body;
-                    let result = await db.prepare("INSERT INTO devices (fingerprint) VALUES (?)").bind(fingerprint).run();
+                    const device = await db.prepare("SELECT id FROM devices WHERE fingerprint = ?").bind(fingerprint).first();
+                    if(!device) result = await db.prepare("INSERT INTO devices (fingerprint) VALUES (?)").bind(fingerprint).run();
+                    else return new Response(JSON.stringify({ id: device.id, message: "Dispositivo ya registrado" }), {status: 200, headers});
                     return new Response(JSON.stringify({ id: result.lastRowId, message: "Dispositivo creado con éxito" }), {status: 201, headers});
                 }),
                 handleRoute(request, "/register","POST", async () => {
-                    const { name, password, device } = body;
+                    const { name, password, fingerprint } = body;
                     try{
                         const hashedPassword = await hashSha256(password);
                         const hexHash = bufferToHex(hashedPassword);
                         const user = await db.prepare("INSERT INTO users (name, password) VALUES (?, ?)").bind(name, hexHash).run();
                         const userId = user.lastRowId;
-                        const result = await db.prepare("UPDATE devices SET user = ? WHERE id = ?").bind(userId, device).run();
-                        return new Response(JSON.stringify({id: userId, message: "Usuario creado con éxito", device: result }), {status: 201, headers});
+                        const device = await db.prepare("SELECT id FROM devices WHERE fingerprint = ?").bind(fingerprint).first();
+                        await db.prepare("UPDATE devices SET user = ? WHERE id = ?").bind(userId, device.id).run();
+                        const session = await createSession(db, device.id);
+                        const registerHeaders = {...corsHeaders(),"Set-Cookie": `session=${session.token}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=86400`}
+                        return new Response(JSON.stringify({ id: userId, message: "Usuario creado con éxito" }), {status: 201, headers: registerHeaders});
                     } catch (err) {console.log(err);return new Response(JSON.stringify({ error: err.message }), {status: 400, headers});}
                 }),
                 handleRoute(request, "/login", "POST", async () => {
@@ -227,16 +259,16 @@ export default {
                     
                     const user = await db.prepare("SELECT * FROM users WHERE name = ?").bind(name).first();
                     if (!user) return new Response(JSON.stringify({ error: "Usuario no encontrado" }), { status: 404, headers });
-
+                    
                     const dbHash = user.password;
                     const valid = await verifyPassword(password, dbHash);
                     if (!valid) return new Response(JSON.stringify({ error: "Contraseña incorrecta" }), { status: 401, headers });
                     
                     const device = await db.prepare("SELECT user FROM devices WHERE fingerprint = ?").bind(fingerprint).first();
-                    let result;
-                    if(device.user == null) result = await db.prepare("UPDATE devices SET user = ? WHERE id = ?").bind(user.id, fingerprint).run();                
-                    
-                    return new Response(JSON.stringify({ message: "Login exitoso", device: result }), { status: 200, headers: loginHeaders });
+                    if(device.user == null) await db.prepare("UPDATE devices SET user = ? WHERE id = ?").bind(user.id, fingerprint).run();                
+                    const session = await createSession(db, device.id);
+                    const loginHeaders = {...corsHeaders(),"Set-Cookie": `session=${session.token}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=86400`};
+                    return new Response(JSON.stringify({ message: "Login exitoso"}), { status: 200, headers: loginHeaders });
                 }),
                 // -------------------- POST /students --------------------
                 handleRoute(request, "/students", "POST", async () => {
@@ -321,6 +353,5 @@ export default {
             }
             return new Response("Not Found", { status: 404, headers })
         } catch(err) {return new Response(JSON.stringify({ error: err.message }), { status: 500, headers })}
-
     }
 }

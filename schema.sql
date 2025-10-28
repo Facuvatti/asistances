@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS devices (
     FOREIGN KEY (user) REFERENCES users(id),
     UNIQUE(fingerprint)
 );
+
 CREATE TABLE IF NOT EXISTS sessions (
     token TEXT PRIMARY KEY,
     device INTEGER NOT NULL,
@@ -24,13 +25,11 @@ CREATE TABLE IF NOT EXISTS classes (
     year INTEGER NOT NULL,
     division INTEGER NOT NULL,
     specialty TEXT NOT NULL,
-    user INTEGER,
-    device INTEGER,
+    device INTEGER NOT NULL,
     FOREIGN KEY (user) REFERENCES users(id),
     FOREIGN KEY (device) REFERENCES devices(id),
     UNIQUE(year, division, specialty, user),
     UNIQUE(year, division, specialty, device),
-    CHECK ((class IS NOT NULL AND subject IS NULL) OR (class IS NULL AND subject IS NOT NULL))
 );
 
 CREATE TABLE IF NOT EXISTS subjects (
@@ -60,12 +59,9 @@ CREATE TABLE IF NOT EXISTS students (
     lastname TEXT NOT NULL,
     name TEXT NOT NULL,
     dni INTEGER,
-    class INTEGER,
-    subject INTEGER,
+    class INTEGER NOT NULL,
     FOREIGN KEY (class) REFERENCES classes(id) ON DELETE CASCADE
-    FOREIGN KEY (subject) REFERENCES subjects(id) ON DELETE CASCADE,
     UNIQUE(dni),
-    CHECK ((class IS NOT NULL AND subject IS NULL) OR (class IS NULL AND subject IS NOT NULL))
 );
 CREATE TABLE IF NOT EXISTS asistances (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
