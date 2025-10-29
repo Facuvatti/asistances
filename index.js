@@ -31,9 +31,7 @@ class Classroom extends Table {
         return result.lastInsertRowid;
     }
     
-    async remove(classId) {
-        await this.db.prepare("DELETE FROM classes WHERE id = ?").bind(classId).run();
-    }
+    async remove(classId) {this.confirmAuth(classId,async () => await this.db.prepare("DELETE FROM classes WHERE id = ?").bind(classId).run());}
     
     async list() {
         const rows = await this.db.prepare(`SELECT id FROM classes ${this.join} WHERE ${this.auth}`).all();
@@ -223,9 +221,9 @@ export default {
             }
         }
         const session = getSession(request, db);
-        let classroom = new Classroom(db);
-        let student = new Student(db);
-        let asistance = new Asistance(db);
+        let classroom = new Classroom(db,session);
+        let student = new Student(db,session);
+        let asistance = new Asistance(db,session);
         const headers = corsHeaders();
         try {
             if (request.method === "OPTIONS") {return new Response(null, { status: 204, headers });}
@@ -326,7 +324,8 @@ export default {
                     return new Response(JSON.stringify({ message: "Clase eliminada" }), { status: 200, headers })
                 }),
                 // -------------------- POST /asistances/:studentId/:presence --------------------
-                handleRoute(request, "/asistances/:studentId/:presence", "POST", async (studentId,presence) => {
+                handleRoute(request, "/asistances/", "POST", async () => {
+                    let {studentId, presence} = body;
                     await asistance.create(studentId, presence);
                     return new Response(JSON.stringify({ message: "Asistencia creada", presence: presence }), { status: 200, headers })
                 }),
