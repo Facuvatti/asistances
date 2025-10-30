@@ -221,6 +221,7 @@ export default {
             }
         }
         const session = getSession(request, db);
+        console.log(session);
         let classroom = new Classroom(db,session);
         let student = new Student(db,session);
         let asistance = new Asistance(db,session);
@@ -316,6 +317,7 @@ export default {
                 // -------------------- GET /classes --------------------
                 handleRoute(request, "/classes", "GET", async () => {
                     let classes = await classroom.list();
+                    console.log(classes);
                     return new Response(JSON.stringify(classes), { status: 200, headers })
                 }),
                 // -------------------- DELETE /class/:id --------------------
